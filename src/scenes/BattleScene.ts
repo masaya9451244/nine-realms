@@ -119,7 +119,11 @@ export class BattleScene extends Phaser.Scene {
 
         // 全マス入力チェック
         if (isComplete(this._currentGrid)) {
-          this._checkVictory();
+          if (!isCorrect(this._currentGrid, this._solution)) {
+            this._showIncorrectMessage();
+          } else {
+            this._checkVictory();
+          }
         }
       }
     });
@@ -185,6 +189,25 @@ export class BattleScene extends Phaser.Scene {
     if (this._battleManager.isDefeated(this._currentHp)) {
       this._onDefeat();
     }
+  }
+
+  // ─── 全マス埋まったが不正解 ──────────────────────────────────────
+
+  private _showIncorrectMessage(): void {
+    const { width, height } = this.scale;
+    const bg = this.add.rectangle(width / 2, height / 2, 500, 120, 0x000000, 0.75)
+      .setDepth(50);
+    const text = this.add.text(width / 2, height / 2, '間違いがあります！\n正しい数字を確認してください', {
+      fontFamily: 'sans-serif',
+      fontSize: 24,
+      color: '#ff6666',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(51);
+
+    this.time.delayedCall(1800, () => {
+      bg.destroy();
+      text.destroy();
+    });
   }
 
   // ─── 勝利判定 ──────────────────────────────────────────────────
