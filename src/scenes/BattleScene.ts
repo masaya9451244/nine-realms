@@ -162,15 +162,6 @@ export class BattleScene extends Phaser.Scene {
       loop: true,
     });
 
-    // ── ボス遭遇セリフ表示（ボス戦のみ）
-    if (this._isBoss) {
-      const story = BOSS_STORIES.find(s => s.realmId === this._realmId);
-      if (story) {
-        this.time.delayedCall(300, () => {
-          this._showDialog(story.encounterLines, () => { /* バトル開始 */ });
-        });
-      }
-    }
   }
 
   // ─── HP ダメージ適用 ──────────────────────────────────────────

@@ -4,6 +4,7 @@ import { REALMS } from '../data/realms';
 import { INITIAL_GAME_STATE } from '../types/game';
 import type { GameState } from '../types/game';
 import { SaveManager } from '../game/SaveManager';
+import { BOSS_STORIES, ENEMY_ENCOUNTER_LINES } from '../data/story';
 
 // 大陸の輪郭ポイント（0〜1の比率）
 const CONTINENT_POINTS = [
@@ -59,6 +60,8 @@ export class WorldMapScene extends Phaser.Scene {
   private _mapY = 28;
   private _mapW = 0;
   private _mapH = 0;
+  private _isDialogOpen = false;
+  private _dialogContainer?: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: 'WorldMapScene' });
@@ -594,11 +597,12 @@ export class WorldMapScene extends Phaser.Scene {
         container.setScale(1);
       });
       icon.on('pointerdown', () => {
+        if (this._isDialogOpen) return;
         const state: GameState = this.game.registry.get('gameState');
         const progress = state.realmProgress ?? {};
         const killed = progress[realm.id] ?? 0;
         const isBoss = killed >= realm.enemyCount || state.clearedRealms.includes(realm.id);
-        this.scene.start('BattleScene', { realmId: realm.id, isBoss });
+        this._showConfirmDialog(realm.name, realm.id, isBoss);
       });
     }
   }
@@ -732,6 +736,173 @@ export class WorldMapScene extends Phaser.Scene {
       fontFamily: 'Georgia, serif', fontSize: 10,
       color: '#6a3a10', fontStyle: 'bold',
     }).setOrigin(0.5);
+  }
+
+  // ── 確認ダイアログ ───────────────────────────────────────────
+
+  private _showConfirmDialog(realmName: string, realmId: number, isBoss: boolean): void {
+    const { WIDTH, HEIGHT } = GAME_CONFIG;
+    this._isDialogOpen = true;
+
+    // 既存のダイアログがあれば破棄
+    this._dialogContainer?.destroy();
+
+    const container = this.add.container(0, 0).setDepth(100);
+    this._dialogContainer = container;
+
+    const cx = WIDTH / 2;
+    const cy = HEIGHT / 2;
+    const dw = 500;
+    const dh = 200;
+
+    // 半透明黒背景
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.75);
+    bg.fillRoundedRect(cx - dw / 2, cy - dh / 2, dw, dh, 10);
+    bg.lineStyle(2, 0x888888, 0.8);
+    bg.strokeRoundedRect(cx - dw / 2, cy - dh / 2, dw, dh, 10);
+    container.add(bg);
+
+    // 確認テキスト
+    const labelText = this.add.text(cx, cy - 40, `「${realmName}」に挑戦する？`, {
+      fontFamily: 'Georgia, serif',
+      fontSize: '22px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5);
+    container.add(labelText);
+
+    // 「はい」ボタン
+    const yesBg = this.add.graphics();
+    yesBg.fillStyle(0x2255cc, 1);
+    yesBg.fillRoundedRect(cx - 120, cy + 20, 100, 44, 8);
+    yesBg.lineStyle(2, 0x88aaff, 0.9);
+    yesBg.strokeRoundedRect(cx - 120, cy + 20, 100, 44, 8);
+    container.add(yesBg);
+
+    const yesText = this.add.text(cx - 70, cy + 42, 'はい', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '18px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setInteractive(
+      new Phaser.Geom.Rectangle(-50, -22, 100, 44),
+      Phaser.Geom.Rectangle.Contains
+    );
+    yesText.on('pointerover', () => { this.input.setDefaultCursor('pointer'); yesBg.clear(); yesBg.fillStyle(0x3366ee, 1); yesBg.fillRoundedRect(cx - 120, cy + 20, 100, 44, 8); yesBg.lineStyle(2, 0x88aaff, 0.9); yesBg.strokeRoundedRect(cx - 120, cy + 20, 100, 44, 8); });
+    yesText.on('pointerout', () => { this.input.setDefaultCursor('default'); yesBg.clear(); yesBg.fillStyle(0x2255cc, 1); yesBg.fillRoundedRect(cx - 120, cy + 20, 100, 44, 8); yesBg.lineStyle(2, 0x88aaff, 0.9); yesBg.strokeRoundedRect(cx - 120, cy + 20, 100, 44, 8); });
+    yesText.on('pointerdown', () => {
+      container.destroy();
+      this._dialogContainer = undefined;
+      // ダイアログは開いたまま（_showEncounterDialog内でリセット）
+      this._showEncounterDialog(realmId, isBoss);
+    });
+    container.add(yesText);
+
+    // 「いいえ」ボタン
+    const noBg = this.add.graphics();
+    noBg.fillStyle(0x555555, 1);
+    noBg.fillRoundedRect(cx + 20, cy + 20, 100, 44, 8);
+    noBg.lineStyle(2, 0x999999, 0.9);
+    noBg.strokeRoundedRect(cx + 20, cy + 20, 100, 44, 8);
+    container.add(noBg);
+
+    const noText = this.add.text(cx + 70, cy + 42, 'いいえ', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '18px',
+      color: '#cccccc',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setInteractive(
+      new Phaser.Geom.Rectangle(-50, -22, 100, 44),
+      Phaser.Geom.Rectangle.Contains
+    );
+    noText.on('pointerover', () => { this.input.setDefaultCursor('pointer'); noBg.clear(); noBg.fillStyle(0x777777, 1); noBg.fillRoundedRect(cx + 20, cy + 20, 100, 44, 8); noBg.lineStyle(2, 0x999999, 0.9); noBg.strokeRoundedRect(cx + 20, cy + 20, 100, 44, 8); });
+    noText.on('pointerout', () => { this.input.setDefaultCursor('default'); noBg.clear(); noBg.fillStyle(0x555555, 1); noBg.fillRoundedRect(cx + 20, cy + 20, 100, 44, 8); noBg.lineStyle(2, 0x999999, 0.9); noBg.strokeRoundedRect(cx + 20, cy + 20, 100, 44, 8); });
+    noText.on('pointerdown', () => {
+      container.destroy();
+      this._dialogContainer = undefined;
+      this._isDialogOpen = false;
+      this.input.setDefaultCursor('default');
+    });
+    container.add(noText);
+  }
+
+  // ── 遭遇セリフ表示 ───────────────────────────────────────────
+
+  private _showEncounterDialog(realmId: number, isBoss: boolean): void {
+    const { WIDTH, HEIGHT } = GAME_CONFIG;
+
+    // セリフ行を決定
+    let lines: string[];
+    if (isBoss) {
+      lines = BOSS_STORIES.find(s => s.realmId === realmId)?.encounterLines ?? [];
+    } else {
+      const patterns = ENEMY_ENCOUNTER_LINES[realmId] ?? [];
+      if (patterns.length > 0) {
+        const chosen = patterns[Math.floor(Math.random() * patterns.length)];
+        lines = [...chosen];
+      } else {
+        lines = [];
+      }
+    }
+
+    // セリフなしの場合はそのままバトル開始
+    if (lines.length === 0) {
+      this._isDialogOpen = false;
+      this.scene.start('BattleScene', { realmId, isBoss });
+      return;
+    }
+
+    let lineIndex = 0;
+
+    this._dialogContainer?.destroy();
+    const container = this.add.container(0, 0).setDepth(100);
+    this._dialogContainer = container;
+
+    // 半透明背景（画面下部）
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.75);
+    bg.fillRect(0, HEIGHT - 140, WIDTH, 140);
+    bg.lineStyle(2, 0x888888, 0.8);
+    bg.strokeRect(20, HEIGHT - 136, WIDTH - 40, 132);
+    container.add(bg);
+
+    const textObj = this.add.text(40, HEIGHT - 116, '', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '16px',
+      color: '#ffffff',
+      wordWrap: { width: WIDTH - 80 },
+      lineSpacing: 6,
+    });
+    container.add(textObj);
+
+    const hint = this.add.text(WIDTH - 40, HEIGHT - 20, 'クリックで次へ', {
+      fontFamily: 'Arial',
+      fontSize: '12px',
+      color: '#aaaaaa',
+    }).setOrigin(1, 1);
+    container.add(hint);
+
+    const showLine = () => {
+      if (lineIndex < lines.length) {
+        textObj.setText(lines[lineIndex]);
+        lineIndex++;
+      } else {
+        container.destroy();
+        this._dialogContainer = undefined;
+        this._isDialogOpen = false;
+        this.scene.start('BattleScene', { realmId, isBoss });
+      }
+    };
+
+    showLine();
+
+    // クリックで次のセリフへ
+    const zone = this.add.zone(0, HEIGHT - 140, WIDTH, 140).setOrigin(0).setInteractive();
+    container.add(zone);
+    zone.on('pointerdown', () => showLine());
   }
 
   // ── UI ──────────────────────────────────────────────────────
