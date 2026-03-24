@@ -136,22 +136,21 @@ export class WorldMapScene extends Phaser.Scene {
   private _drawTerrain(): void {
     const g = this.add.graphics();
 
-    // 草原エリア（Realm1）- すでに大陸が緑なのでそのまま
-    // 装飾的な小木を追加
-    this._drawSmallTrees(g, 0.15, 0.75, 5);
-    this._drawSmallTrees(g, 0.25, 0.65, 4);
+    // 草原エリア（Realm1）
+    this._drawSmallTrees(g, 0.18, 0.73, 5);
+    this._drawSmallTrees(g, 0.26, 0.66, 4);
 
     // 森エリア（Realm2）
     g.fillStyle(0x1e5e1e, 0.85);
-    g.fillEllipse(...this._ellipseArgs(0.28, 0.52, 0.18, 0.16));
-    this._drawSmallTrees(g, 0.28, 0.52, 8);
-    this._drawSmallTrees(g, 0.22, 0.48, 5);
-    this._drawSmallTrees(g, 0.34, 0.56, 5);
+    g.fillEllipse(...this._ellipseArgs(0.33, 0.52, 0.18, 0.16));
+    this._drawSmallTrees(g, 0.33, 0.52, 8);
+    this._drawSmallTrees(g, 0.26, 0.48, 5);
+    this._drawSmallTrees(g, 0.40, 0.55, 5);
 
     // 砂漠エリア（Realm3）
     g.fillStyle(0xc8a84b, 0.9);
-    g.fillEllipse(...this._ellipseArgs(0.50, 0.65, 0.20, 0.18));
-    this._drawDunes(g, 0.48, 0.67);
+    g.fillEllipse(...this._ellipseArgs(0.52, 0.66, 0.20, 0.18));
+    this._drawDunes(g, 0.50, 0.68);
 
     // 雪山エリア（Realm4）
     g.fillStyle(0xddeeff, 0.85);
@@ -159,33 +158,72 @@ export class WorldMapScene extends Phaser.Scene {
     this._drawMountains(g, 0.68, 0.50, 0xffffff);
     this._drawMountains(g, 0.74, 0.46, 0xeef4ff);
 
-    // 海の王国（Realm5）- 半島風
-    g.fillStyle(0x2a6aaa, 0.6);
-    g.fillEllipse(...this._ellipseArgs(0.85, 0.70, 0.12, 0.14));
-    g.fillStyle(0x3d7a3d, 0.8);
-    g.fillEllipse(...this._ellipseArgs(0.84, 0.74, 0.08, 0.08));
+    // 海の王国（Realm5）- 大陸右端の港町風
+    g.fillStyle(0x2a6aaa, 0.5);
+    g.fillEllipse(...this._ellipseArgs(0.83, 0.60, 0.14, 0.18));
+    g.fillStyle(0x3d7a3d, 0.85);
+    g.fillEllipse(...this._ellipseArgs(0.82, 0.62, 0.09, 0.10));
 
     // 火山エリア（Realm6）
     g.fillStyle(0x5a1a0a, 0.85);
-    g.fillEllipse(...this._ellipseArgs(0.75, 0.32, 0.16, 0.14));
-    this._drawVolcano(g, 0.75, 0.32);
+    g.fillEllipse(...this._ellipseArgs(0.76, 0.32, 0.16, 0.14));
+    this._drawVolcano(g, 0.76, 0.32);
 
     // 闇の森（Realm7）
     g.fillStyle(0x1a0a2a, 0.88);
-    g.fillEllipse(...this._ellipseArgs(0.55, 0.18, 0.16, 0.12));
-    this._drawDeadTrees(g, 0.53, 0.20);
-    this._drawDeadTrees(g, 0.58, 0.16);
+    g.fillEllipse(...this._ellipseArgs(0.55, 0.22, 0.16, 0.14));
+    this._drawDeadTrees(g, 0.53, 0.23);
+    this._drawDeadTrees(g, 0.58, 0.19);
 
-    // 天空エリア（Realm8）- 雲の島
-    g.fillStyle(0xccddff, 0.9);
-    g.fillEllipse(...this._ellipseArgs(0.30, 0.18, 0.14, 0.10));
-    g.fillStyle(0xeef4ff, 0.7);
-    g.fillEllipse(...this._ellipseArgs(0.28, 0.16, 0.10, 0.07));
-    g.fillEllipse(...this._ellipseArgs(0.33, 0.20, 0.08, 0.06));
-
-    // 魔王城エリア（Realm9）
+    // 魔王城エリア（Realm9）- 左側の暗い山岳地帯
     g.fillStyle(0x2a0a0a, 0.9);
-    g.fillEllipse(...this._ellipseArgs(0.12, 0.30, 0.12, 0.14));
+    g.fillEllipse(...this._ellipseArgs(0.16, 0.38, 0.14, 0.16));
+    this._drawMountains(g, 0.15, 0.38, 0x440000);
+
+    // 天空の王国（Realm8）- 空に浮かぶ島（大陸の上方、別世界感）
+    this._drawSkyIsland(g);
+  }
+
+  private _drawSkyIsland(g: Phaser.GameObjects.Graphics): void {
+    const { x, y } = this._toMapXY(0.32, 0.08);
+    const W = this._mapW;
+
+    // 背景の空（薄い青いグラデーション帯）
+    g.fillStyle(0x99bbff, 0.18);
+    g.fillRect(this._mapX, this._mapY, W, this._mapH * 0.15);
+
+    // 流れる雲（背景）
+    const cloudColor = 0xddeeff;
+    [[x - 90, y + 10], [x + 70, y + 5], [x - 30, y - 8], [x + 120, y + 18], [x - 150, y + 20]].forEach(([cx, cy]) => {
+      g.fillStyle(cloudColor, 0.45);
+      g.fillEllipse(cx, cy, 80, 28);
+      g.fillEllipse(cx + 22, cy - 10, 60, 24);
+      g.fillEllipse(cx - 20, cy - 6, 50, 20);
+    });
+
+    // 浮島本体（岩の底面）
+    g.fillStyle(0x7a6a4a, 1);
+    g.fillEllipse(x, y + 28, 110, 28);
+    // 草の層
+    g.fillStyle(0x7acc55, 1);
+    g.fillEllipse(x, y + 12, 100, 26);
+    // 光る粒子（星）
+    g.fillStyle(0xffffaa, 0.9);
+    [[-30, -10], [20, -15], [-10, -20], [35, -5], [-40, -18]].forEach(([ox, oy]) => {
+      g.fillCircle(x + ox, y + oy, 2.5);
+    });
+
+    // 虹の橋（大陸上部から天空島へ）
+    const bridgeStartX = this._mapX + 0.32 * this._mapW;
+    const bridgeStartY = this._mapY + 0.18 * this._mapH;
+    const rainbowColors = [0xff6666, 0xffaa44, 0xffee44, 0x88ee44, 0x44aaff, 0x8844ff];
+    rainbowColors.forEach((col, i) => {
+      g.lineStyle(2, col, 0.35);
+      g.beginPath();
+      g.moveTo(bridgeStartX - 20, bridgeStartY);
+      g.lineTo(x - 20 + i * 2, y + 30);
+      g.strokePath();
+    });
   }
 
   private _ellipseArgs(rx: number, ry: number, rw: number, rh: number): [number, number, number, number] {
