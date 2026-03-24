@@ -24,7 +24,7 @@ const config: Phaser.Types.Core.GameConfig = {
     BattleScene,
     ShopScene,
     DialogScene,
-    EndingScene,
+    RealmClearScene,
   ],
   parent: 'app',
 };
