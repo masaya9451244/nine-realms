@@ -15,6 +15,7 @@ export interface GameState {
   };
   clearedRealms: number[];    // クリア済みRealmのID
   currentRealmId: number;     // 現在挑戦中のRealm ID
+  realmProgress: Record<number, number>; // 各Realmで倒した雑魚数
 }
 
 export const INITIAL_GAME_STATE: GameState = {
@@ -23,4 +24,5 @@ export const INITIAL_GAME_STATE: GameState = {
   inventory: [],
   items: { numberLight: 0, truthEye: 0, guidingHand: 0 },
   clearedRealms: [], currentRealmId: 1,
+  realmProgress: {},
 };

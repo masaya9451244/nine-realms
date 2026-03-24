@@ -286,49 +286,119 @@ export class ShopScene extends Phaser.Scene {
     return (c, ry) => {
       const W = this._scrollAreaW;
       const avail = item.price !== null;
+      const isOwned = state.inventory.includes(item.id);
+
+      // 装備スロット判定（武器/防具/アクセサリー）
+      const equipData = EQUIPMENT_LIST.find(e => e.id === item.id);
+      const slot = equipData?.slot ?? 'weapon';
+      const isEquipped = state.equipment[slot] === item.id;
 
       const bg = this.add.graphics();
-      bg.fillStyle(avail ? COL_PARCHMENT_DARK : 0xcccccc, avail ? 0.35 : 0.15);
+      bg.fillStyle(avail || isOwned ? COL_PARCHMENT_DARK : 0xcccccc, avail || isOwned ? 0.35 : 0.15);
       bg.fillRoundedRect(0, ry, W, ROW_H, 6);
 
-      const icon = this.add.text(12, ry + ROW_H / 2, item.icon, { fontSize: '20px' }).setOrigin(0, 0.5).setAlpha(avail ? 1 : 0.35);
-      const name = this.add.text(42, ry + 10, item.name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: avail ? '#2c1a00' : '#888888' });
-      const desc = this.add.text(42, ry + 28, item.description, { fontFamily: 'Arial', fontSize: '12px', color: avail ? '#5a3e00' : '#999999' });
+      const icon = this.add.text(12, ry + ROW_H / 2, item.icon, { fontSize: '20px' }).setOrigin(0, 0.5).setAlpha(avail || isOwned ? 1 : 0.35);
+      const name = this.add.text(42, ry + 10, item.name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: avail || isOwned ? '#2c1a00' : '#888888' });
+      const desc = this.add.text(42, ry + 28, item.description, { fontFamily: 'Arial', fontSize: '12px', color: avail || isOwned ? '#5a3e00' : '#999999' });
 
       c.add([bg, icon, name, desc]);
 
-      if (avail) {
-        const alreadyOwned = state.inventory.includes(item.id);
-        const price = item.price as number;
-        const priceText = this.add.text(360, ry + ROW_H / 2, `${price} G`, { fontFamily: 'Georgia, serif', fontSize: '14px', color: '#c9a227' }).setOrigin(0, 0.5);
-        c.add(priceText);
-
-        if (alreadyOwned) {
-          const ownedLabel = this.add.text(W - 56, ry + ROW_H / 2, '所持済み', { fontFamily: 'Arial', fontSize: '12px', color: '#888888' }).setOrigin(0.5, 0.5);
-          c.add(ownedLabel);
+      if (isOwned) {
+        // 所持済み：装備ボタンまたは装備中表示
+        if (isEquipped) {
+          // 装備中（グレーボタン）
+          this._addEquipStateBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30, '装備中', true, () => { /* 装備中は何もしない */ });
         } else {
-          this._addBuyBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30, () => {
+          // 未装備 → 装備ボタン
+          this._addEquipStateBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30, '装備する', false, () => {
             const gs: GameState = this.game.registry.get('gameState');
-            if (gs.gold < price) {
-              this._showFeedback('ゴールドが足りません');
-              return;
-            }
-            if (gs.inventory.includes(item.id)) {
-              this._showFeedback('すでに所持しています');
-              return;
-            }
-            gs.gold -= price;
-            gs.inventory.push(item.id);
+            gs.equipment[slot] = item.id;
             this.game.registry.set('gameState', gs);
-            this._goldText.setText(`G: ${gs.gold}`);
-            this._showFeedback('購入しました！');
+            state.equipment[slot] = item.id;
+            this._showFeedback(`${item.name}を装備しました！`);
+            // シーン再描画（装備状態を反映）
+            this.scene.restart();
           });
         }
+      } else if (avail) {
+        // 未所持かつ購入可能
+        const price = item.price as number;
+        const canAfford = state.gold >= price;
+        const priceText = this.add.text(340, ry + ROW_H / 2, `${price} G`, {
+          fontFamily: 'Georgia, serif', fontSize: '14px',
+          color: canAfford ? '#c9a227' : '#888888',
+        }).setOrigin(0, 0.5);
+        c.add(priceText);
+
+        this._addBuyBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30, () => {
+          const gs: GameState = this.game.registry.get('gameState');
+          if (gs.gold < price) {
+            this._showFeedback('ゴールドが足りません');
+            return;
+          }
+          if (gs.inventory.includes(item.id)) {
+            this._showFeedback('すでに所持しています');
+            return;
+          }
+          gs.gold -= price;
+          gs.inventory.push(item.id);
+          this.game.registry.set('gameState', gs);
+          this._goldText.setText(`G: ${gs.gold}`);
+          this._showFeedback('購入しました！');
+          // シーン再描画
+          this.scene.restart();
+        });
       } else {
-        const dropLabel = this.add.text(360, ry + ROW_H / 2, 'ドロップ品', { fontFamily: 'Arial', fontSize: '12px', color: '#888888' }).setOrigin(0, 0.5);
+        // ドロップ品
+        const dropLabel = this.add.text(340, ry + ROW_H / 2, 'ドロップ品', {
+          fontFamily: 'Arial', fontSize: '12px', color: '#888888',
+        }).setOrigin(0, 0.5);
         c.add(dropLabel);
       }
     };
+  }
+
+  // ─── 装備状態ボタン ───────────────────────────────────────────
+
+  private _addEquipStateBtn(
+    c: Phaser.GameObjects.Container,
+    rx: number, ry: number, w: number, h: number,
+    label: string,
+    disabled: boolean,
+    onPress: () => void,
+  ): void {
+    const COL_EQUIP  = 0x4a5c9f;
+    const COL_EQUIPPED = 0x666666;
+
+    const g = this.add.graphics();
+    const draw = (hover: boolean) => {
+      g.clear();
+      if (disabled) {
+        g.fillStyle(COL_EQUIPPED, 1);
+      } else {
+        g.fillStyle(hover ? 0x6a7cbf : COL_EQUIP, 1);
+      }
+      g.fillRoundedRect(rx, ry, w, h, 5);
+      g.lineStyle(1, disabled ? 0x444444 : 0x2a3c6f, 1);
+      g.strokeRoundedRect(rx, ry, w, h, 5);
+    };
+    draw(false);
+
+    const txt = this.add.text(rx + w / 2, ry + h / 2, label, {
+      fontFamily: 'Georgia, serif',
+      fontSize: '13px',
+      color: disabled ? '#aaaaaa' : '#ffffff',
+    }).setOrigin(0.5).setDepth(1);
+
+    if (!disabled) {
+      const zone = this.add.zone(rx, ry, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
+      zone.on('pointerover', () => draw(true));
+      zone.on('pointerout',  () => draw(false));
+      zone.on('pointerdown', () => onPress());
+      c.add([g, txt, zone]);
+    } else {
+      c.add([g, txt]);
+    }
   }
 
   // ─── 購入ボタン（コンテナ内） ─────────────────────────────────

@@ -3,7 +3,8 @@ export interface BossStory {
   bossName: string;
   portrait: string;   // DialogScene の portrait キー
   encounterLines: string[];  // バトル開始時のセリフ
-  defeatLines: string[];     // ボス敗北時のセリフ
+  defeatLines: string[];     // ボス敗北時のセリフ（プレイヤー勝利）
+  victoryLines?: string[];   // ボス勝利時のセリフ（プレイヤー敗北）
 }
 
 export const BOSS_STORIES: BossStory[] = [

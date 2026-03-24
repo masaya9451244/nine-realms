@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { REALMS } from '../data/realms';
+import { INITIAL_GAME_STATE } from '../types/game';
 import type { GameState } from '../types/game';
 import { SaveManager } from '../game/SaveManager';
 
@@ -64,16 +65,21 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   init(_data?: unknown): void {
-    const state: GameState | undefined = this.game.registry.get('gameState');
-    if (state) {
-      this._clearedRealms = [...state.clearedRealms];
-      this._currentRealm = state.currentRealmId;
-      this._gold = state.gold;
-    } else {
-      this._clearedRealms = JSON.parse(localStorage.getItem('nine-realms-cleared') ?? '[]');
-      this._currentRealm = Number(localStorage.getItem('nine-realms-current') ?? '1');
-      this._gold = Number(localStorage.getItem('nine-realms-gold') ?? '0');
+    let state: GameState | undefined = this.game.registry.get('gameState');
+    if (!state) {
+      // SaveManager 経由でロードを試みる（localStorage直接アクセスを避ける）
+      const saved = SaveManager.load();
+      state = saved ?? { ...INITIAL_GAME_STATE };
+      this.game.registry.set('gameState', state);
     }
+    // 敗北後のHP回復
+    if (state.hp <= 0) {
+      state.hp = state.maxHp;
+      this.game.registry.set('gameState', state);
+    }
+    this._clearedRealms = [...state.clearedRealms];
+    this._currentRealm = state.currentRealmId;
+    this._gold = state.gold;
   }
 
   create(): void {
@@ -559,7 +565,11 @@ export class WorldMapScene extends Phaser.Scene {
         container.setScale(1);
       });
       icon.on('pointerdown', () => {
-        this.scene.start('BattleScene', { realmId: realm.id });
+        const state: GameState = this.game.registry.get('gameState');
+        const progress = state.realmProgress ?? {};
+        const killed = progress[realm.id] ?? 0;
+        const isBoss = killed >= realm.enemyCount || state.clearedRealms.includes(realm.id);
+        this.scene.start('BattleScene', { realmId: realm.id, isBoss });
       });
     }
   }

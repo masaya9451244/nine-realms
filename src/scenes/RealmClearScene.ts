@@ -147,7 +147,8 @@ export class RealmClearScene extends Phaser.Scene {
     this.time.delayedCall(300, () => this._spawnStars());
 
     // ── 「つづく...」テキスト
-    const continueText = this.add.text(WIDTH / 2, HEIGHT - 60, 'つづく...', {
+    const continueLabel = this._data.realmId === 9 ? 'おわり...' : 'つづく...';
+    const continueText = this.add.text(WIDTH / 2, HEIGHT - 60, continueLabel, {
       fontFamily: 'Georgia, serif',
       fontSize: '18px',
       color: '#cccccc',
@@ -224,7 +225,11 @@ export class RealmClearScene extends Phaser.Scene {
     if (!this.scene.isActive('RealmClearScene')) return;
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start('WorldMapScene');
+      if (this._data.realmId === 9) {
+        this.scene.start('EndingScene');
+      } else {
+        this.scene.start('WorldMapScene');
+      }
     });
   }
 }

@@ -8,6 +8,8 @@ import { BattleManager } from '../game/BattleManager';
 import { EquipmentManager } from '../game/EquipmentManager';
 import { SaveManager } from '../game/SaveManager';
 import { REALMS } from '../data/realms';
+import { EQUIPMENT_LIST } from '../data/equipment';
+import { BOSS_STORIES } from '../data/story';
 import type { GameState } from '../types/game';
 import type { Grid } from '../types/sudoku';
 
@@ -38,15 +40,20 @@ export class BattleScene extends Phaser.Scene {
   private _timeDamageEvent?: Phaser.Time.TimerEvent;
   private _defeated = false;
   private _won = false;
+  private _isBoss = false;
 
   private _goldReward = 0;
+
+  // セリフ表示用オーバーレイ
+  private _dialogOverlay?: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: 'BattleScene' });
   }
 
-  init(data: { realmId?: number }): void {
+  init(data: { realmId?: number; isBoss?: boolean }): void {
     this._realmId = data?.realmId ?? 1;
+    this._isBoss = data?.isBoss ?? true;
     this._defeated = false;
     this._won = false;
   }
@@ -57,7 +64,7 @@ export class BattleScene extends Phaser.Scene {
     // GameState の読み込み
     const state: GameState = this.game.registry.get('gameState');
     const realm = REALMS.find(r => r.id === this._realmId) ?? REALMS[0];
-    this._goldReward = realm.bossGoldReward;
+    this._goldReward = this._isBoss ? realm.bossGoldReward : realm.goldReward;
 
     // 装備効果を計算
     const blankReduction = this._equipmentManager.getBlankReduction(state.equipment.weapon);
@@ -72,8 +79,9 @@ export class BattleScene extends Phaser.Scene {
     // アイテム所持数の同期
     this._itemCounts = { ...state.items };
 
-    // 数独パズルの生成
-    const actualBlank = this._battleManager.getActualBlankCount(realm.difficulty, blankReduction);
+    // 数独パズルの生成（ボス戦は高難易度）
+    const baseDifficulty = this._isBoss ? realm.bossDifficulty : realm.difficulty;
+    const actualBlank = this._battleManager.getActualBlankCount(baseDifficulty, blankReduction);
     const puzzle = generate(actualBlank);
     this._solution = puzzle.solution;
     this._currentGrid = puzzle.grid.map(row => [...row]);
@@ -150,6 +158,16 @@ export class BattleScene extends Phaser.Scene {
       },
       loop: true,
     });
+
+    // ── ボス遭遇セリフ表示（ボス戦のみ）
+    if (this._isBoss) {
+      const story = BOSS_STORIES.find(s => s.realmId === this._realmId);
+      if (story) {
+        this.time.delayedCall(300, () => {
+          this._showDialog(story.encounterLines, () => { /* バトル開始 */ });
+        });
+      }
+    }
   }
 
   // ─── HP ダメージ適用 ──────────────────────────────────────────
@@ -178,20 +196,55 @@ export class BattleScene extends Phaser.Scene {
     this._won = true;
     this._timeDamageEvent?.destroy();
 
-    // GameState 更新
     const state: GameState = this.game.registry.get('gameState');
     state.gold += this._goldReward;
     state.hp = this._currentHp;
-    if (!state.clearedRealms.includes(this._realmId)) {
-      state.clearedRealms.push(this._realmId);
+
+    if (this._isBoss) {
+      // ボス戦勝利処理
+      if (!state.clearedRealms.includes(this._realmId)) {
+        state.clearedRealms.push(this._realmId);
+      }
+      state.currentRealmId = Math.min(9, Math.max(state.currentRealmId, this._realmId + 1));
+
+      // 装備ドロップ処理
+      const dropEquip = EQUIPMENT_LIST.find(e => e.dropRealmId === this._realmId);
+      let dropMessage = '';
+      if (dropEquip && !state.inventory.includes(dropEquip.id)) {
+        state.inventory.push(dropEquip.id);
+        dropMessage = `${dropEquip.name}を手に入れた！`;
+      }
+
+      this.game.registry.set('gameState', state);
+      SaveManager.save(state);
+
+      // ボス撃破セリフ → RealmClearScene
+      const story = BOSS_STORIES.find(s => s.realmId === this._realmId);
+      const lines = story ? [...story.defeatLines] : [];
+      if (dropMessage) lines.push(dropMessage);
+
+      if (lines.length > 0) {
+        this._showDialog(lines, () => {
+          this._fadeToRealmClear();
+        });
+      } else {
+        this._fadeToRealmClear();
+      }
+    } else {
+      // 雑魚戦勝利処理
+      if (!state.realmProgress) state.realmProgress = {};
+      state.realmProgress[this._realmId] = (state.realmProgress[this._realmId] ?? 0) + 1;
+      this.game.registry.set('gameState', state);
+      SaveManager.save(state);
+
+      this.cameras.main.fadeOut(300, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.start('WorldMapScene');
+      });
     }
-    state.currentRealmId = Math.min(9, Math.max(state.currentRealmId, this._realmId + 1));
-    this.game.registry.set('gameState', state);
+  }
 
-    // 勝利時に自動セーブ
-    SaveManager.save(state);
-
-    // RealmClearScene へ
+  private _fadeToRealmClear(): void {
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('RealmClearScene', {
@@ -209,12 +262,26 @@ export class BattleScene extends Phaser.Scene {
     this._defeated = true;
     this._timeDamageEvent?.destroy();
 
-    // GameState の HP を更新
+    // GameState の HP を更新（0にする。WorldMapScene の init で maxHp に回復する）
     const state: GameState = this.game.registry.get('gameState');
     state.hp = 0;
     this.game.registry.set('gameState', state);
 
-    // フェードアウト → WorldMapScene
+    // ボス戦の場合は敗北セリフ表示
+    if (this._isBoss) {
+      const story = BOSS_STORIES.find(s => s.realmId === this._realmId);
+      if (story && story.victoryLines && story.victoryLines.length > 0) {
+        this._showDialog(story.victoryLines, () => {
+          this._fadeToWorldMap();
+        });
+        return;
+      }
+    }
+
+    this._fadeToWorldMap();
+  }
+
+  private _fadeToWorldMap(): void {
     this.cameras.main.fadeOut(500, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('WorldMapScene');
@@ -552,5 +619,60 @@ export class BattleScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5);
+  }
+
+  // ─── セリフ表示（インライン方式） ──────────────────────────────
+
+  private _showDialog(lines: string[], onComplete: () => void): void {
+    const { WIDTH, HEIGHT } = GAME_CONFIG;
+    let lineIndex = 0;
+
+    // 既存のダイアログがあれば破棄
+    this._dialogOverlay?.destroy();
+
+    const container = this.add.container(0, 0).setDepth(100);
+    this._dialogOverlay = container;
+
+    // 半透明背景
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.75);
+    bg.fillRect(0, HEIGHT - 140, WIDTH, 140);
+    bg.lineStyle(2, 0x888888, 0.8);
+    bg.strokeRect(20, HEIGHT - 136, WIDTH - 40, 132);
+    container.add(bg);
+
+    const textObj = this.add.text(40, HEIGHT - 116, '', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '16px',
+      color: '#ffffff',
+      wordWrap: { width: WIDTH - 80 },
+      lineSpacing: 6,
+    });
+    container.add(textObj);
+
+    const hint = this.add.text(WIDTH - 40, HEIGHT - 20, 'クリックで次へ', {
+      fontFamily: 'Arial',
+      fontSize: '12px',
+      color: '#aaaaaa',
+    }).setOrigin(1, 1);
+    container.add(hint);
+
+    const showLine = () => {
+      if (lineIndex < lines.length) {
+        textObj.setText(lines[lineIndex]);
+        lineIndex++;
+      } else {
+        container.destroy();
+        this._dialogOverlay = undefined;
+        onComplete();
+      }
+    };
+
+    showLine();
+
+    // クリックで次のセリフへ
+    const zone = this.add.zone(0, HEIGHT - 140, WIDTH, 140).setOrigin(0).setInteractive();
+    container.add(zone);
+    zone.on('pointerdown', () => showLine());
   }
 }
