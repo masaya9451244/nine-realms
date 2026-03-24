@@ -213,8 +213,8 @@ export class WorldMapScene extends Phaser.Scene {
     ];
 
     rifts.forEach(points => {
-      // 亀裂の外縁（暗い紫）
-      g.lineStyle(3, 0x220033, 0.22);
+      // 亀裂の外縁（暗い黒紫）
+      g.lineStyle(5, 0x110022, 0.7);
       g.beginPath();
       const first = this._toMapXY(points[0][0], points[0][1]);
       g.moveTo(first.x, first.y);
@@ -224,8 +224,18 @@ export class WorldMapScene extends Phaser.Scene {
       });
       g.strokePath();
 
-      // 亀裂の中心（薄い紫の光）
-      g.lineStyle(1, 0x9933cc, 0.18);
+      // 亀裂の中心（紫の光）
+      g.lineStyle(2, 0xbb44ff, 0.55);
+      g.beginPath();
+      g.moveTo(first.x, first.y);
+      points.slice(1).forEach(([rx, ry]) => {
+        const { x, y } = this._toMapXY(rx, ry);
+        g.lineTo(x, y);
+      });
+      g.strokePath();
+
+      // 亀裂の芯（白に近い輝き）
+      g.lineStyle(1, 0xeeccff, 0.35);
       g.beginPath();
       g.moveTo(first.x, first.y);
       points.slice(1).forEach(([rx, ry]) => {
