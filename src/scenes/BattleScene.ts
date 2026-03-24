@@ -6,6 +6,7 @@ import { generate } from '../game/SudokuGenerator';
 import { isComplete, isCorrect, getMistakeCells, getCandidates } from '../game/SudokuValidator';
 import { BattleManager } from '../game/BattleManager';
 import { EquipmentManager } from '../game/EquipmentManager';
+import { SaveManager } from '../game/SaveManager';
 import { REALMS } from '../data/realms';
 import type { GameState } from '../types/game';
 import type { Grid } from '../types/sudoku';
@@ -186,6 +187,9 @@ export class BattleScene extends Phaser.Scene {
     }
     state.currentRealmId = Math.min(9, Math.max(state.currentRealmId, this._realmId + 1));
     this.game.registry.set('gameState', state);
+
+    // 勝利時に自動セーブ
+    SaveManager.save(state);
 
     // RealmClearScene へ
     this.cameras.main.fadeOut(300, 0, 0, 0);

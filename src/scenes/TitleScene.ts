@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { FONTS, GAME_CONFIG } from '../config';
+import { SaveManager } from '../game/SaveManager';
+import { INITIAL_GAME_STATE } from '../types/game';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -50,13 +52,21 @@ export class TitleScene extends Phaser.Scene {
 
     // はじめからボタン
     const startBtn = this.createButton(cx, 400, 'はじめから', 0x2ecc71, () => {
+      SaveManager.deleteSave();
+      this.game.registry.set('gameState', { ...INITIAL_GAME_STATE });
       this.scene.start('OpeningScene');
     });
 
     // つづきからボタン（セーブデータがある場合のみ有効）
-    const hasSave = !!localStorage.getItem('nine-realms-save');
+    const hasSave = SaveManager.hasSaveData();
     this.createButton(cx, 480, 'つづきから', hasSave ? 0x3498db : 0x555555, () => {
-      if (hasSave) this.scene.start('WorldMapScene');
+      if (hasSave) {
+        const saved = SaveManager.load();
+        if (saved) {
+          this.game.registry.set('gameState', saved);
+        }
+        this.scene.start('WorldMapScene');
+      }
     }, !hasSave);
 
     // ボタンにパルスアニメーション

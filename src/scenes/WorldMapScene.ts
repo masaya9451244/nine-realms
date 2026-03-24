@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { REALMS } from '../data/realms';
 import type { GameState } from '../types/game';
+import { SaveManager } from '../game/SaveManager';
 
 // 大陸の輪郭ポイント（0〜1の比率）
 const CONTINENT_POINTS = [
@@ -89,6 +90,12 @@ export class WorldMapScene extends Phaser.Scene {
     REALMS.forEach(r => this._drawRealmNode(r));
     this._drawMapFrame();
     this._drawUI();
+
+    // マップ表示時に自動セーブ
+    const state: GameState = this.game.registry.get('gameState');
+    if (state) {
+      SaveManager.save(state);
+    }
   }
 
   private _toXY(rx: number, ry: number) {

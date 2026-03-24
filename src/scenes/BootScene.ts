@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { INITIAL_GAME_STATE } from '../types/game';
+import { SaveManager } from '../game/SaveManager';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -25,8 +26,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    // GameStateの初期化（初回のみ）
-    if (!this.game.registry.get('gameState')) {
+    // セーブデータがあればロード、なければ初期状態をセット
+    const saved = SaveManager.load();
+    if (saved) {
+      this.game.registry.set('gameState', saved);
+    } else {
       this.game.registry.set('gameState', { ...INITIAL_GAME_STATE });
     }
     this.scene.start('TitleScene');
