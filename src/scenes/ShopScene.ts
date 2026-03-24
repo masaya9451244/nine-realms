@@ -391,11 +391,11 @@ export class ShopScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(1);
 
     if (!disabled) {
-      const zone = this.add.zone(rx, ry, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
-      zone.on('pointerover', () => draw(true));
-      zone.on('pointerout',  () => draw(false));
-      zone.on('pointerdown', () => onPress());
-      c.add([g, txt, zone]);
+      g.setInteractive(new Phaser.Geom.Rectangle(rx, ry, w, h), Phaser.Geom.Rectangle.Contains);
+      g.on('pointerover', () => { draw(true); this.input.setDefaultCursor('pointer'); });
+      g.on('pointerout',  () => { draw(false); this.input.setDefaultCursor('default'); });
+      g.on('pointerdown', () => onPress());
+      c.add([g, txt]);
     } else {
       c.add([g, txt]);
     }
@@ -422,14 +422,15 @@ export class ShopScene extends Phaser.Scene {
       fontFamily: 'Georgia, serif',
       fontSize: '13px',
       color: '#ffffff',
-    }).setOrigin(0.5).setDepth(1);
+    }).setOrigin(0.5);
 
-    const zone = this.add.zone(rx, ry, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
-    zone.on('pointerover', () => draw(true));
-    zone.on('pointerout',  () => draw(false));
-    zone.on('pointerdown', () => onBuy());
+    // ZoneではなくGraphicsを直接インタラクティブにする（Container内でも当たり判定が正しく動く）
+    g.setInteractive(new Phaser.Geom.Rectangle(rx, ry, w, h), Phaser.Geom.Rectangle.Contains);
+    g.on('pointerover', () => { draw(true); this.input.setDefaultCursor('pointer'); });
+    g.on('pointerout',  () => { draw(false); this.input.setDefaultCursor('default'); });
+    g.on('pointerdown', () => onBuy());
 
-    c.add([g, label, zone]);
+    c.add([g, label]);
   }
 
   // ─── 背景パーチメント ─────────────────────────────────────────
