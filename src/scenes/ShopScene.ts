@@ -93,6 +93,13 @@ export class ShopScene extends Phaser.Scene {
   }
 
   create(_data?: unknown): void {
+    // restart() 後に古い参照が残らないようリセット
+    this._tabContainers = [];
+    this._tabBtnGraphics = [];
+    this._tabBtnTexts = [];
+    this._tabScrollOffsets = [0, 0, 0, 0];
+    this._tabMaxScrolls = [0, 0, 0, 0];
+
     const { WIDTH, HEIGHT } = GAME_CONFIG;
     const state: GameState = this.game.registry.get('gameState');
 
