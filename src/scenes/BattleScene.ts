@@ -97,6 +97,30 @@ export class BattleScene extends Phaser.Scene {
     // ── 左パネル（敵表示）
     this._drawEnemyPanel(realm.bossName, realm.color);
 
+    // ── 雑魚戦の進捗表示（左パネル下部）
+    if (!this._isBoss) {
+      const killed = (state.realmProgress?.[this._realmId] ?? 0);
+      const total = realm.enemyCount;
+      const remaining = total - killed;
+      const label = remaining === 1
+        ? 'あと1体でボス戦！'
+        : `あと${remaining}体でボス戦`;
+      this.add.text(110, GAME_CONFIG.HEIGHT - 65, label, {
+        fontFamily: 'sans-serif',
+        fontSize: 12,
+        color: '#ffaa44',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5);
+      this.add.text(110, GAME_CONFIG.HEIGHT - 48, `(${killed + 1}/${total}体目)`, {
+        fontFamily: 'sans-serif',
+        fontSize: 11,
+        color: '#aaaaaa',
+        stroke: '#000000',
+        strokeThickness: 2,
+      }).setOrigin(0.5);
+    }
+
     // ── 数独グリッド（中央右寄り）
     const gridX = WIDTH / 2 - SudokuGrid.prototype.gridSize / 2 + 60;
     const gridY = HEIGHT / 2 - SudokuGrid.prototype.gridSize / 2 - 10;
