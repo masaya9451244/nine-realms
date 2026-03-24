@@ -544,7 +544,7 @@ export class WorldMapScene extends Phaser.Scene {
         container.setScale(1);
       });
       icon.on('pointerdown', () => {
-        this._infoText.setText(`「${realm.name}」 に挑戦！（バトル実装中）`);
+        this.scene.start('BattleScene', { realmId: realm.id });
       });
     }
   }
