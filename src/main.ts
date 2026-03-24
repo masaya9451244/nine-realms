@@ -16,12 +16,12 @@ const config: Phaser.Types.Core.GameConfig = {
   height: GAME_CONFIG.HEIGHT,
   backgroundColor: COLORS.BG_DARK,
   scene: [
+    ShopScene,
     BootScene,
     TitleScene,
     OpeningScene,
     WorldMapScene,
     BattleScene,
-    ShopScene,
     DialogScene,
     RealmClearScene,
     EndingScene,
