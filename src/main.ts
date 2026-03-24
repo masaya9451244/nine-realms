@@ -16,7 +16,6 @@ const config: Phaser.Types.Core.GameConfig = {
   height: GAME_CONFIG.HEIGHT,
   backgroundColor: COLORS.BG_DARK,
   scene: [
-    EndingScene,
     BootScene,
     TitleScene,
     OpeningScene,
@@ -25,6 +24,7 @@ const config: Phaser.Types.Core.GameConfig = {
     ShopScene,
     DialogScene,
     RealmClearScene,
+    EndingScene,
   ],
   parent: 'app',
 };
