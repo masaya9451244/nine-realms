@@ -102,9 +102,9 @@ export class SudokuGrid {
   }
 
   private _build(): void {
-    this._bgGraphics = this._scene.add.graphics();
-    this._cellGraphics = this._scene.add.graphics();
-    this._lineGraphics = this._scene.add.graphics();
+    this._bgGraphics = this._scene.add.graphics().setDepth(0);
+    this._cellGraphics = this._scene.add.graphics().setDepth(1);
+    this._lineGraphics = this._scene.add.graphics().setDepth(2);
 
     // テキストオブジェクト初期化
     this._textObjects = Array.from({ length: 9 }, (_, r) =>
@@ -116,7 +116,7 @@ export class SudokuGrid {
           fontSize: 34,
           color: '#111122',
           fontStyle: 'bold',
-        }).setOrigin(0.5).setDepth(2);
+        }).setOrigin(0.5).setDepth(3);
       })
     );
 
@@ -132,7 +132,7 @@ export class SudokuGrid {
             fontFamily: 'Arial',
             fontSize: 11,
             color: '#7a7a9a',
-          }).setOrigin(0.5).setDepth(2).setVisible(false);
+          }).setOrigin(0.5).setDepth(3).setVisible(false);
         })
       )
     );
@@ -201,9 +201,10 @@ export class SudokuGrid {
     const g = this._lineGraphics;
     g.clear();
 
-    // 背景
-    g.fillStyle(C.LINE_BOLD, 1);
-    g.fillRect(this._x - 2, this._y - 2, GRID + 4, GRID + 4);
+    // 背景（bgGraphicsに描画）
+    this._bgGraphics.clear();
+    this._bgGraphics.fillStyle(C.LINE_BOLD, 1);
+    this._bgGraphics.fillRect(this._x - 2, this._y - 2, GRID + 4, GRID + 4);
 
     // 細い縦横線
     g.lineStyle(1, C.LINE_THIN, 0.8);
