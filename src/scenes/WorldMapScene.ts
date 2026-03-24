@@ -509,6 +509,10 @@ export class WorldMapScene extends Phaser.Scene {
     const isCurrent = realm.id === this._currentRealm;
     const isLocked = realm.id > this._currentRealm;
 
+    const state: GameState = this.game.registry.get('gameState');
+    const progress = state?.realmProgress ?? {};
+    const killed = progress[realm.id] ?? 0;
+
     const container = this.add.container(x, y);
     const icon = this.add.graphics();
     this._drawCastle(icon, realm.id, isCleared, isCurrent, isLocked);
@@ -544,6 +548,31 @@ export class WorldMapScene extends Phaser.Scene {
       fontStyle: isLocked ? 'italic' : 'bold',
     }).setOrigin(0.5);
     container.add(label);
+
+    // 進捗テキスト
+    if (!isLocked) {
+      let progressLabel: string;
+      let progressColor: string;
+      if (isCleared) {
+        progressLabel = '✓ クリア';
+        progressColor = '#44cc44';
+      } else if (killed >= realm.enemyCount) {
+        progressLabel = '⚔ BOSS';
+        progressColor = '#ff6622';
+      } else {
+        progressLabel = `雑魚 ${killed}/${realm.enemyCount}`;
+        progressColor = '#ccbbaa';
+      }
+      const progressText = this.add.text(0, 40, progressLabel, {
+        fontFamily: 'Georgia, serif',
+        fontSize: 11,
+        color: progressColor,
+        stroke: '#f0d890',
+        strokeThickness: 3,
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+      container.add(progressText);
+    }
 
     // クリック判定
     if (!isLocked) {

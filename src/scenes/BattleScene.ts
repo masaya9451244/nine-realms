@@ -255,13 +255,78 @@ export class BattleScene extends Phaser.Scene {
     } else {
       // 雑魚戦勝利処理
       if (!state.realmProgress) state.realmProgress = {};
+      const realm = REALMS.find(r => r.id === this._realmId) ?? REALMS[0];
+      const isLastMinion = (state.realmProgress[this._realmId] ?? 0) + 1 >= realm.enemyCount;
       state.realmProgress[this._realmId] = (state.realmProgress[this._realmId] ?? 0) + 1;
       this.game.registry.set('gameState', state);
       SaveManager.save(state);
 
-      this.cameras.main.fadeOut(300, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start('WorldMapScene');
+      const { WIDTH, HEIGHT } = GAME_CONFIG;
+      const cx = WIDTH / 2;
+      const cy = HEIGHT / 2;
+
+      // 「撃破！」テキスト
+      const defeatText = this.add.text(cx, cy - 30, '撃破！', {
+        fontFamily: 'Georgia, serif',
+        fontSize: 64,
+        color: '#ffee00',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 6,
+      }).setOrigin(0.5).setDepth(60).setScale(0, 1);
+
+      this.tweens.add({
+        targets: defeatText,
+        scaleX: 1,
+        duration: 300,
+        ease: 'Back.easeOut',
+      });
+
+      // ゴールド報酬テキスト
+      const goldText = this.add.text(cx, cy + 40, `+${this._goldReward}G`, {
+        fontFamily: 'Georgia, serif',
+        fontSize: 36,
+        color: '#ffd700',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 5,
+      }).setOrigin(0.5).setDepth(60).setAlpha(0);
+
+      this.tweens.add({
+        targets: goldText,
+        alpha: 1,
+        y: cy + 30,
+        duration: 400,
+        delay: 150,
+        ease: 'Sine.easeOut',
+      });
+
+      // ボス出現テキスト（ラストの雑魚の場合）
+      if (isLastMinion) {
+        const bossText = this.add.text(cx, cy + 100, 'ボスが現れた！', {
+          fontFamily: 'Georgia, serif',
+          fontSize: 28,
+          color: '#ff8800',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 5,
+        }).setOrigin(0.5).setDepth(60).setAlpha(0);
+
+        this.tweens.add({
+          targets: bossText,
+          alpha: 1,
+          duration: 400,
+          delay: 500,
+          ease: 'Sine.easeOut',
+        });
+      }
+
+      // 1.5秒後にフェードアウト
+      this.time.delayedCall(1500, () => {
+        this.cameras.main.fadeOut(300, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('WorldMapScene');
+        });
       });
     }
   }
@@ -357,8 +422,29 @@ export class BattleScene extends Phaser.Scene {
     g.lineStyle(1, 0x3a3a6a, 0.7);
     g.strokeRoundedRect(panelX, panelY, panelW, panelH, 10);
 
+    // ボス/雑魚ラベル
+    if (this._isBoss) {
+      this.add.text(panelX + panelW / 2, panelY + 10, '👑 BOSS', {
+        fontFamily: 'Georgia, serif',
+        fontSize: 13,
+        color: '#ffd700',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5);
+    } else {
+      this.add.text(panelX + panelW / 2, panelY + 10, '雑魚敵', {
+        fontFamily: 'Georgia, serif',
+        fontSize: 13,
+        color: '#888888',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5);
+    }
+
     // 敵名
-    this.add.text(panelX + panelW / 2, panelY + 18, bossName, {
+    this.add.text(panelX + panelW / 2, panelY + 28, bossName, {
       fontFamily: 'Georgia, serif',
       fontSize: 16,
       color: '#dd4444',
