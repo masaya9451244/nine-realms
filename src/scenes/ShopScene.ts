@@ -213,7 +213,9 @@ export class ShopScene extends Phaser.Scene {
     const maskG = this.add.graphics();
     maskG.fillStyle(0xffffff);
     maskG.fillRect(this._scrollAreaX, this._scrollAreaY, this._scrollAreaW, this._scrollAreaH);
-    container.setMask(maskG.createGeometryMask());
+    const mask = maskG.createGeometryMask();
+    maskG.setVisible(false); // 描画はせずジオメトリとしてのみ使用
+    container.setMask(mask);
 
     let relY = 4;
     rows.forEach(buildRow => {
