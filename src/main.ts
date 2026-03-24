@@ -22,7 +22,7 @@ const config: Phaser.Types.Core.GameConfig = {
     OpeningScene,
     WorldMapScene,
     BattleScene,
-    DialogScene,
+    ShopScene,
     RealmClearScene,
     EndingScene,
   ],
