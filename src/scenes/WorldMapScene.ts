@@ -193,7 +193,7 @@ export class WorldMapScene extends Phaser.Scene {
     // 各Realmの境界を走る断層線。薄く描くことで「気づく人だけ気づく」裏設定になる。
     // 亀裂は不規則にジグザグし、紫がかった暗い輝きを帯びている。
 
-    const rifts: Array<[number, number, number, number][]> = [
+    const rifts: Array<[number, number][]> = [
       // Realm1 と Realm2 の境界（草原〜森）
       [[0.18, 0.58], [0.22, 0.64], [0.20, 0.70], [0.24, 0.76]],
       // Realm2 と Realm3 の境界（森〜砂漠）
