@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { REALMS } from '../data/realms';
+import type { GameState } from '../types/game';
 
 // 大陸の輪郭ポイント（0〜1の比率）
 const CONTINENT_POINTS = [
@@ -61,10 +62,17 @@ export class WorldMapScene extends Phaser.Scene {
     super({ key: 'WorldMapScene' });
   }
 
-  init(data: { clearedRealms?: number[]; currentRealm?: number; gold?: number }): void {
-    this._clearedRealms = data.clearedRealms ?? JSON.parse(localStorage.getItem('nine-realms-cleared') ?? '[]');
-    this._currentRealm = data.currentRealm ?? Number(localStorage.getItem('nine-realms-current') ?? '1');
-    this._gold = data.gold ?? Number(localStorage.getItem('nine-realms-gold') ?? '0');
+  init(_data?: unknown): void {
+    const state: GameState | undefined = this.game.registry.get('gameState');
+    if (state) {
+      this._clearedRealms = [...state.clearedRealms];
+      this._currentRealm = state.currentRealmId;
+      this._gold = state.gold;
+    } else {
+      this._clearedRealms = JSON.parse(localStorage.getItem('nine-realms-cleared') ?? '[]');
+      this._currentRealm = Number(localStorage.getItem('nine-realms-current') ?? '1');
+      this._gold = Number(localStorage.getItem('nine-realms-gold') ?? '0');
+    }
   }
 
   create(): void {
@@ -730,6 +738,6 @@ export class WorldMapScene extends Phaser.Scene {
     shopText.setInteractive(new Phaser.Geom.Rectangle(-55, -12, 110, 24), Phaser.Geom.Rectangle.Contains);
     shopText.on('pointerover', () => { this.input.setDefaultCursor('pointer'); shopText.setColor('#ffe8aa'); });
     shopText.on('pointerout', () => { this.input.setDefaultCursor('default'); shopText.setColor('#f4d4a0'); });
-    shopText.on('pointerdown', () => { this._infoText.setText('ショップ（実装中）'); });
+    shopText.on('pointerdown', () => { this.scene.start('ShopScene'); });
   }
 }

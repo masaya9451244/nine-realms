@@ -1,46 +1,61 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
+import { EQUIPMENT_LIST } from '../data/equipment';
+import type { GameState } from '../types/game';
 
-interface HintItem {
+interface HintItemDef {
+  key: 'numberLight' | 'truthEye' | 'guidingHand';
   icon: string;
   name: string;
   description: string;
   price: number;
-  owned: number;
 }
 
-interface EquipItem {
+interface EquipItemDef {
+  id: string;
   icon: string;
   name: string;
   description: string;
   price: number | null;
 }
 
-const HINT_ITEMS: HintItem[] = [
-  { icon: '💡', name: '数字の光',  description: '候補数字を表示',   price: 10, owned: 3 },
-  { icon: '👁',  name: '真実の目', description: 'ミスをハイライト', price: 30, owned: 1 },
-  { icon: '✋', name: '導きの手', description: '1マス自動入力',    price: 50, owned: 0 },
+const HINT_ITEMS: HintItemDef[] = [
+  { key: 'numberLight', icon: '💡', name: '数字の光',  description: '候補数字を表示',   price: 10 },
+  { key: 'truthEye',    icon: '👁',  name: '真実の目', description: 'ミスをハイライト', price: 30 },
+  { key: 'guidingHand', icon: '✋', name: '導きの手', description: '1マス自動入力',    price: 50 },
 ];
 
-const EQUIP_WEAPONS: EquipItem[] = [
-  { icon: '⚔', name: '木の剣',   description: '空白マス -5',  price: 100  },
-  { icon: '⚔', name: '鉄の剣',   description: '空白マス -10', price: null },
-  { icon: '⚔', name: '伝説の剣', description: '空白マス -15', price: null },
-];
+const EQUIP_WEAPONS: EquipItemDef[] = EQUIPMENT_LIST
+  .filter(e => e.slot === 'weapon')
+  .map(e => ({
+    id: e.id,
+    icon: '⚔',
+    name: e.name,
+    description: `空白マス -${e.effect.blankReduction ?? 0}`,
+    price: e.price,
+  }));
 
-const EQUIP_ARMORS: EquipItem[] = [
-  { icon: '🛡', name: '革の鎧',   description: '最大HP +50',  price: 150  },
-  { icon: '🛡', name: '鉄の鎧',   description: '最大HP +100', price: null },
-  { icon: '🛡', name: '守護の鎧', description: '最大HP +150', price: null },
-];
+const EQUIP_ARMORS: EquipItemDef[] = EQUIPMENT_LIST
+  .filter(e => e.slot === 'armor')
+  .map(e => ({
+    id: e.id,
+    icon: '🛡',
+    name: e.name,
+    description: `最大HP +${e.effect.maxHpBonus ?? 0}`,
+    price: e.price,
+  }));
 
-const EQUIP_ACCESSORIES: EquipItem[] = [
-  { icon: '✨', name: 'お守り',     description: '時間ダメージ -1', price: 80   },
-  { icon: '✨', name: '賢者の指輪', description: 'ミスダメージ -5', price: null },
-  { icon: '✨', name: '不死鳥の羽', description: '時間ダメージ -3', price: null },
-];
-
-const DEMO_GOLD = 250;
+const EQUIP_ACCESSORIES: EquipItemDef[] = EQUIPMENT_LIST
+  .filter(e => e.slot === 'accessory')
+  .map(e => ({
+    id: e.id,
+    icon: '✨',
+    name: e.name,
+    description: e.effect.timeDamageReduction
+      ? `時間ダメージ -${e.effect.timeDamageReduction}`
+      : `ミスダメージ -${e.effect.missDamageReduction ?? 0}`,
+    price: e.price,
+  }));
 
 const COL_PARCHMENT      = 0xf5e6c8;
 const COL_PARCHMENT_DARK = 0xe8d4a8;
@@ -58,6 +73,7 @@ const ROW_H = 52;
 export class ShopScene extends Phaser.Scene {
   private _feedbackText!: Phaser.GameObjects.Text;
   private _activeTab = 0;
+  private _goldText!: Phaser.GameObjects.Text;
 
   // タブごとのコンテナ・スクロール状態
   private _tabContainers: Phaser.GameObjects.Container[] = [];
@@ -78,6 +94,7 @@ export class ShopScene extends Phaser.Scene {
 
   create(_data?: unknown): void {
     const { WIDTH, HEIGHT } = GAME_CONFIG;
+    const state: GameState = this.game.registry.get('gameState');
 
     // 背景
     const overlay = this.add.graphics();
@@ -113,13 +130,13 @@ export class ShopScene extends Phaser.Scene {
     this._scrollAreaX = panelX + 20;
     this._scrollAreaY = tabY + tabH + 4;
     this._scrollAreaW = panelW - 40;
-    this._scrollAreaH = panelH - (tabY - panelY) - tabH - 4 - 70; // 下部ボタン分を引く
+    this._scrollAreaH = panelH - (tabY - panelY) - tabH - 4 - 70;
 
     // 各タブのコンテンツ
-    this._buildTabContent(0, HINT_ITEMS.map(i => this._hintRow(i)));
-    this._buildTabContent(1, EQUIP_WEAPONS.map(i => this._equipRow(i)));
-    this._buildTabContent(2, EQUIP_ARMORS.map(i => this._equipRow(i)));
-    this._buildTabContent(3, EQUIP_ACCESSORIES.map(i => this._equipRow(i)));
+    this._buildTabContent(0, HINT_ITEMS.map(i => this._hintRow(i, state)));
+    this._buildTabContent(1, EQUIP_WEAPONS.map(i => this._equipRow(i, state)));
+    this._buildTabContent(2, EQUIP_ARMORS.map(i => this._equipRow(i, state)));
+    this._buildTabContent(3, EQUIP_ACCESSORIES.map(i => this._equipRow(i, state)));
 
     this._showTab(0);
 
@@ -137,7 +154,7 @@ export class ShopScene extends Phaser.Scene {
     });
 
     // 所持ゴールド
-    this.add.text(panelX + 24, panelY + panelH - 46, `G: ${DEMO_GOLD}`, {
+    this._goldText = this.add.text(panelX + 24, panelY + panelH - 46, `G: ${state.gold}`, {
       fontFamily: 'Georgia, serif',
       fontSize: '20px',
       color: '#c9a227',
@@ -214,7 +231,7 @@ export class ShopScene extends Phaser.Scene {
     maskG.fillStyle(0xffffff);
     maskG.fillRect(this._scrollAreaX, this._scrollAreaY, this._scrollAreaW, this._scrollAreaH);
     const mask = maskG.createGeometryMask();
-    maskG.setVisible(false); // 描画はせずジオメトリとしてのみ使用
+    maskG.setVisible(false);
     container.setMask(mask);
 
     let relY = 4;
@@ -230,7 +247,7 @@ export class ShopScene extends Phaser.Scene {
 
   // ─── 行ビルダー ──────────────────────────────────────────────
 
-  private _hintRow(item: HintItem): (c: Phaser.GameObjects.Container, ry: number) => void {
+  private _hintRow(item: HintItemDef, state: GameState): (c: Phaser.GameObjects.Container, ry: number) => void {
     return (c, ry) => {
       const W = this._scrollAreaW;
 
@@ -243,16 +260,29 @@ export class ShopScene extends Phaser.Scene {
       const icon = this.add.text(12, ry + ROW_H / 2, item.icon, { fontSize: '24px' }).setOrigin(0, 0.5);
       const name = this.add.text(50, ry + 10, item.name, { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#2c1a00' });
       const desc = this.add.text(50, ry + 28, item.description, { fontFamily: 'Arial', fontSize: '12px', color: '#5a3e00' });
-      const owned = this.add.text(240, ry + ROW_H / 2, `所持: ${item.owned}個`, { fontFamily: 'Arial', fontSize: '12px', color: '#7a5c20' }).setOrigin(0, 0.5);
+      const owned = this.add.text(240, ry + ROW_H / 2, `所持: ${state.items[item.key]}個`, { fontFamily: 'Arial', fontSize: '12px', color: '#7a5c20' }).setOrigin(0, 0.5);
       const priceText = this.add.text(360, ry + ROW_H / 2, `${item.price} G`, { fontFamily: 'Georgia, serif', fontSize: '14px', color: '#c9a227' }).setOrigin(0, 0.5);
 
       c.add([bg, icon, name, desc, owned, priceText]);
 
-      this._addBuyBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30);
+      this._addBuyBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30, () => {
+        const gs: GameState = this.game.registry.get('gameState');
+        if (gs.gold < item.price) {
+          this._showFeedback('ゴールドが足りません');
+          return;
+        }
+        gs.gold -= item.price;
+        (gs.items as Record<string, number>)[item.key]++;
+        this.game.registry.set('gameState', gs);
+        state.items[item.key]++;
+        owned.setText(`所持: ${state.items[item.key]}個`);
+        this._goldText.setText(`G: ${gs.gold}`);
+        this._showFeedback('購入しました！');
+      });
     };
   }
 
-  private _equipRow(item: EquipItem): (c: Phaser.GameObjects.Container, ry: number) => void {
+  private _equipRow(item: EquipItemDef, state: GameState): (c: Phaser.GameObjects.Container, ry: number) => void {
     return (c, ry) => {
       const W = this._scrollAreaW;
       const avail = item.price !== null;
@@ -268,9 +298,32 @@ export class ShopScene extends Phaser.Scene {
       c.add([bg, icon, name, desc]);
 
       if (avail) {
-        const priceText = this.add.text(360, ry + ROW_H / 2, `${item.price} G`, { fontFamily: 'Georgia, serif', fontSize: '14px', color: '#c9a227' }).setOrigin(0, 0.5);
+        const alreadyOwned = state.inventory.includes(item.id);
+        const price = item.price as number;
+        const priceText = this.add.text(360, ry + ROW_H / 2, `${price} G`, { fontFamily: 'Georgia, serif', fontSize: '14px', color: '#c9a227' }).setOrigin(0, 0.5);
         c.add(priceText);
-        this._addBuyBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30);
+
+        if (alreadyOwned) {
+          const ownedLabel = this.add.text(W - 56, ry + ROW_H / 2, '所持済み', { fontFamily: 'Arial', fontSize: '12px', color: '#888888' }).setOrigin(0.5, 0.5);
+          c.add(ownedLabel);
+        } else {
+          this._addBuyBtn(c, W - 100, ry + (ROW_H - 30) / 2, 88, 30, () => {
+            const gs: GameState = this.game.registry.get('gameState');
+            if (gs.gold < price) {
+              this._showFeedback('ゴールドが足りません');
+              return;
+            }
+            if (gs.inventory.includes(item.id)) {
+              this._showFeedback('すでに所持しています');
+              return;
+            }
+            gs.gold -= price;
+            gs.inventory.push(item.id);
+            this.game.registry.set('gameState', gs);
+            this._goldText.setText(`G: ${gs.gold}`);
+            this._showFeedback('購入しました！');
+          });
+        }
       } else {
         const dropLabel = this.add.text(360, ry + ROW_H / 2, 'ドロップ品', { fontFamily: 'Arial', fontSize: '12px', color: '#888888' }).setOrigin(0, 0.5);
         c.add(dropLabel);
@@ -280,7 +333,11 @@ export class ShopScene extends Phaser.Scene {
 
   // ─── 購入ボタン（コンテナ内） ─────────────────────────────────
 
-  private _addBuyBtn(c: Phaser.GameObjects.Container, rx: number, ry: number, w: number, h: number): void {
+  private _addBuyBtn(
+    c: Phaser.GameObjects.Container,
+    rx: number, ry: number, w: number, h: number,
+    onBuy: () => void,
+  ): void {
     const g = this.add.graphics();
     const draw = (hover: boolean) => {
       g.clear();
@@ -300,7 +357,7 @@ export class ShopScene extends Phaser.Scene {
     const zone = this.add.zone(rx, ry, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
     zone.on('pointerover', () => draw(true));
     zone.on('pointerout',  () => draw(false));
-    zone.on('pointerdown', () => this._showFeedback('購入しました！'));
+    zone.on('pointerdown', () => onBuy());
 
     c.add([g, label, zone]);
   }

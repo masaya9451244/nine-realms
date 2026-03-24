@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { INITIAL_GAME_STATE } from '../types/game';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -24,6 +25,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    // GameStateの初期化（初回のみ）
+    if (!this.game.registry.get('gameState')) {
+      this.game.registry.set('gameState', { ...INITIAL_GAME_STATE });
+    }
     this.scene.start('TitleScene');
   }
 }

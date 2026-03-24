@@ -2,61 +2,116 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { SudokuGrid } from '../ui/SudokuGrid';
 import { ItemSlot, ITEM_CONFIGS } from '../ui/ItemSlot';
+import { generate } from '../game/SudokuGenerator';
+import { isComplete, isCorrect, getMistakeCells, getCandidates } from '../game/SudokuValidator';
+import { BattleManager } from '../game/BattleManager';
+import { EquipmentManager } from '../game/EquipmentManager';
+import { REALMS } from '../data/realms';
+import type { GameState } from '../types/game';
+import type { Grid } from '../types/sudoku';
+
+const HP_BAR_X = 264;
+const HP_BAR_Y = 12;
+const HP_BAR_W = 260;
+const HP_BAR_H = 26;
 
 export class BattleScene extends Phaser.Scene {
   private _grid!: SudokuGrid;
   private _hpBarFill!: Phaser.GameObjects.Graphics;
+  private _hpText!: Phaser.GameObjects.Text;
   private _selectedNum = 0;
   private _numButtons: Phaser.GameObjects.Container[] = [];
 
   private _currentHp = 100;
   private _maxHp = 100;
 
+  private _realmId = 1;
+  private _solution!: Grid;
+  private _currentGrid!: Grid;
+  private _battleManager = new BattleManager();
+  private _equipmentManager = new EquipmentManager();
+
+  private _itemSlots: ItemSlot[] = [];
+  private _itemCounts = { numberLight: 0, truthEye: 0, guidingHand: 0 };
+
+  private _timeDamageEvent?: Phaser.Time.TimerEvent;
+  private _defeated = false;
+  private _won = false;
+
+  private _goldReward = 0;
+
   constructor() {
     super({ key: 'BattleScene' });
+  }
+
+  init(data: { realmId?: number }): void {
+    this._realmId = data?.realmId ?? 1;
+    this._defeated = false;
+    this._won = false;
   }
 
   create(): void {
     const { WIDTH, HEIGHT } = GAME_CONFIG;
 
+    // GameState の読み込み
+    const state: GameState = this.game.registry.get('gameState');
+    const realm = REALMS.find(r => r.id === this._realmId) ?? REALMS[0];
+    this._goldReward = realm.bossGoldReward;
+
+    // 装備効果を計算
+    const blankReduction = this._equipmentManager.getBlankReduction(state.equipment.weapon);
+    const timeDamageReduction = this._equipmentManager.getTimeDamageReduction(state.equipment.accessory);
+    const missDamageReduction = this._equipmentManager.getMissDamageReduction(state.equipment.accessory);
+    const maxHp = this._equipmentManager.getMaxHp(state.maxHp, state.equipment.armor);
+
+    // HP の同期
+    this._maxHp = maxHp;
+    this._currentHp = Math.min(state.hp, maxHp);
+
+    // アイテム所持数の同期
+    this._itemCounts = { ...state.items };
+
+    // 数独パズルの生成
+    const actualBlank = this._battleManager.getActualBlankCount(realm.difficulty, blankReduction);
+    const puzzle = generate(actualBlank);
+    this._solution = puzzle.solution;
+    this._currentGrid = puzzle.grid.map(row => [...row]);
+
+    // ダメージ計算
+    const timeDmg = this._battleManager.getTimeDamage(this._realmId, timeDamageReduction);
+    const missDmg = this._battleManager.getMissDamage(this._realmId, missDamageReduction);
+    const interval = this._battleManager.getDamageInterval(this._realmId);
+
     // ── 背景
     this._drawBackground();
 
     // ── 左パネル（敵表示）
-    this._drawEnemyPanel();
+    this._drawEnemyPanel(realm.bossName, realm.color);
 
     // ── 数独グリッド（中央右寄り）
     const gridX = WIDTH / 2 - SudokuGrid.prototype.gridSize / 2 + 60;
     const gridY = HEIGHT / 2 - SudokuGrid.prototype.gridSize / 2 - 10;
     this._grid = new SudokuGrid(this, gridX, gridY);
-
-    // デモ用のサンプルグリッドを表示
-    const demo = [
-      [5,3,0, 0,7,0, 0,0,0],
-      [6,0,0, 1,9,5, 0,0,0],
-      [0,9,8, 0,0,0, 0,6,0],
-      [8,0,0, 0,6,0, 0,0,3],
-      [4,0,0, 8,0,3, 0,0,1],
-      [7,0,0, 0,2,0, 0,0,6],
-      [0,6,0, 0,0,0, 2,8,0],
-      [0,0,0, 4,1,9, 0,0,5],
-      [0,0,0, 0,8,0, 0,7,9],
-    ];
-    const sol = [
-      [5,3,4,6,7,8,9,1,2],
-      [6,7,2,1,9,5,3,4,8],
-      [1,9,8,3,4,2,5,6,7],
-      [8,5,9,7,6,1,4,2,3],
-      [4,2,6,8,5,3,7,9,1],
-      [7,1,3,9,2,4,8,5,6],
-      [9,6,1,5,3,7,2,8,4],
-      [2,8,7,4,1,9,6,3,5],
-      [3,4,5,2,8,6,1,7,9],
-    ];
-    this._grid.loadGrid(demo, sol);
+    this._grid.loadGrid(puzzle.grid, this._solution);
     this._grid.setOnCellSelect((r, c) => {
+      if (this._won || this._defeated) return;
       if (this._selectedNum > 0) {
+        const prevValue = this._currentGrid[r][c];
+        // 固定マスへの入力は SudokuGrid 側が防ぐが念のため
         this._grid.setCell(r, c, this._selectedNum);
+        this._currentGrid[r][c] = this._selectedNum;
+
+        // ミス判定（入力前は0だった、または別の値だった場合のみ）
+        if (prevValue !== this._selectedNum &&
+            this._selectedNum !== this._solution[r][c] &&
+            this._solution[r][c] !== 0) {
+          this._applyDamage(missDmg);
+        }
+
+        // 全マス入力チェック
+        if (isComplete(this._currentGrid)) {
+          this._checkVictory();
+        }
       }
     });
 
@@ -67,7 +122,7 @@ export class BattleScene extends Phaser.Scene {
     this._drawHpBar();
 
     // ── ダメージ情報（上部中央）
-    this._drawDamageInfo(WIDTH / 2 + 60, 10);
+    this._drawDamageInfo(WIDTH / 2 + 60, 10, interval / 1000, timeDmg);
 
     // ── アイテムスロット（右パネル）
     this._drawItemSlots();
@@ -83,6 +138,83 @@ export class BattleScene extends Phaser.Scene {
     backBtn.on('pointerover', () => { this.input.setDefaultCursor('pointer'); backBtn.setColor('#ffffff'); });
     backBtn.on('pointerout', () => { this.input.setDefaultCursor('default'); backBtn.setColor('#aabbcc'); });
     backBtn.on('pointerdown', () => this.scene.start('WorldMapScene'));
+
+    // ── 時間ダメージタイマー
+    this._timeDamageEvent = this.time.addEvent({
+      delay: interval,
+      callback: () => {
+        if (!this._defeated && !this._won) {
+          this._applyDamage(timeDmg);
+        }
+      },
+      loop: true,
+    });
+  }
+
+  // ─── HP ダメージ適用 ──────────────────────────────────────────
+
+  private _applyDamage(amount: number): void {
+    if (this._defeated || this._won) return;
+    this._currentHp = Math.max(0, this._currentHp - amount);
+    this._updateHpBar(HP_BAR_X, HP_BAR_Y, HP_BAR_W, HP_BAR_H);
+
+    // HP テキスト更新
+    if (this._hpText) {
+      this._hpText.setText(`HP  ${this._currentHp} / ${this._maxHp}`);
+    }
+
+    if (this._battleManager.isDefeated(this._currentHp)) {
+      this._onDefeat();
+    }
+  }
+
+  // ─── 勝利判定 ──────────────────────────────────────────────────
+
+  private _checkVictory(): void {
+    if (this._won || this._defeated) return;
+    if (!isCorrect(this._currentGrid, this._solution)) return;
+
+    this._won = true;
+    this._timeDamageEvent?.destroy();
+
+    // GameState 更新
+    const state: GameState = this.game.registry.get('gameState');
+    state.gold += this._goldReward;
+    state.hp = this._currentHp;
+    if (!state.clearedRealms.includes(this._realmId)) {
+      state.clearedRealms.push(this._realmId);
+    }
+    state.currentRealmId = Math.min(9, Math.max(state.currentRealmId, this._realmId + 1));
+    this.game.registry.set('gameState', state);
+
+    // RealmClearScene へ
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('RealmClearScene', {
+        realmId: this._realmId,
+        realmName: REALMS.find(r => r.id === this._realmId)?.name ?? '',
+        goldEarned: this._goldReward,
+      });
+    });
+  }
+
+  // ─── 敗北処理 ──────────────────────────────────────────────────
+
+  private _onDefeat(): void {
+    if (this._defeated) return;
+    this._defeated = true;
+    this._timeDamageEvent?.destroy();
+
+    // GameState の HP を更新
+    const state: GameState = this.game.registry.get('gameState');
+    state.hp = 0;
+    this.game.registry.set('gameState', state);
+
+    // フェードアウト → WorldMapScene
+    this.cameras.main.fadeOut(500, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('WorldMapScene');
+    });
   }
 
   // ─── 背景 ────────────────────────────────────────────────────
@@ -119,7 +251,7 @@ export class BattleScene extends Phaser.Scene {
 
   // ─── 敵パネル ────────────────────────────────────────────────
 
-  private _drawEnemyPanel(): void {
+  private _drawEnemyPanel(bossName: string, color: number): void {
     const { HEIGHT } = GAME_CONFIG;
     const panelX = 20;
     const panelW = 180;
@@ -133,7 +265,7 @@ export class BattleScene extends Phaser.Scene {
     g.strokeRoundedRect(panelX, panelY, panelW, panelH, 10);
 
     // 敵名
-    this.add.text(panelX + panelW / 2, panelY + 18, 'グリーン卿', {
+    this.add.text(panelX + panelW / 2, panelY + 18, bossName, {
       fontFamily: 'Georgia, serif',
       fontSize: 16,
       color: '#dd4444',
@@ -142,13 +274,13 @@ export class BattleScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5);
 
-    // 敵のシルエット（仮）
+    // 敵のシルエット
     const mg = this.add.graphics();
     const ex = panelX + panelW / 2;
     const ey = panelY + 130;
     mg.fillStyle(0x3a2a4a, 0.8);
-    mg.fillEllipse(ex, ey + 60, 120, 30); // 影
-    mg.fillStyle(0x5a3a7a, 1);
+    mg.fillEllipse(ex, ey + 60, 120, 30);
+    mg.fillStyle(color, 1);
     // 体
     mg.fillRect(ex - 25, ey - 40, 50, 70);
     // 頭
@@ -161,7 +293,7 @@ export class BattleScene extends Phaser.Scene {
     mg.fillCircle(ex - 9, ey - 57, 5);
     mg.fillCircle(ex + 9, ey - 57, 5);
     // 腕
-    mg.fillStyle(0x5a3a7a, 1);
+    mg.fillStyle(color, 1);
     mg.fillRect(ex - 45, ey - 35, 18, 50);
     mg.fillRect(ex + 27, ey - 35, 18, 50);
     // 足
@@ -198,9 +330,9 @@ export class BattleScene extends Phaser.Scene {
   // ─── HPバー ──────────────────────────────────────────────────
 
   private _drawHpBar(): void {
-    const barX = 220, barY = 12, barW = 260, barH = 26;
+    const barX = HP_BAR_X, barY = HP_BAR_Y, barW = HP_BAR_W, barH = HP_BAR_H;
 
-    this.add.text(barX, barY + barH / 2, '勇者', {
+    this.add.text(barX - 40, barY + barH / 2, '勇者', {
       fontFamily: 'Georgia, serif',
       fontSize: 14,
       color: '#f4d03f',
@@ -211,14 +343,14 @@ export class BattleScene extends Phaser.Scene {
 
     const bg = this.add.graphics();
     bg.fillStyle(0x111111, 0.85);
-    bg.fillRoundedRect(barX + 44, barY, barW, barH, 5);
+    bg.fillRoundedRect(barX, barY, barW, barH, 5);
     bg.lineStyle(1, 0x445544, 0.7);
-    bg.strokeRoundedRect(barX + 44, barY, barW, barH, 5);
+    bg.strokeRoundedRect(barX, barY, barW, barH, 5);
 
     this._hpBarFill = this.add.graphics();
-    this._updateHpBar(barX + 44, barY, barW, barH);
+    this._updateHpBar(barX, barY, barW, barH);
 
-    this.add.text(barX + 44 + barW / 2, barY + barH / 2, `HP  ${this._currentHp} / ${this._maxHp}`, {
+    this._hpText = this.add.text(barX + barW / 2, barY + barH / 2, `HP  ${this._currentHp} / ${this._maxHp}`, {
       fontFamily: 'Georgia, serif',
       fontSize: 13,
       color: '#ffffff',
@@ -310,7 +442,10 @@ export class BattleScene extends Phaser.Scene {
     delContainer.on('pointerdown', () => {
       const sel = this._grid['_selectedRow'];
       const selC = this._grid['_selectedCol'];
-      if (sel >= 0) this._grid.setCell(sel, selC, 0);
+      if (sel >= 0) {
+        this._grid.setCell(sel, selC, 0);
+        this._currentGrid[sel][selC] = 0;
+      }
     });
   }
 
@@ -343,18 +478,70 @@ export class BattleScene extends Phaser.Scene {
         panelY + 60 + i * 90,
         config
       );
-      slot.setCount(i === 0 ? 3 : i === 1 ? 1 : 0); // デモ用
+      const countKey = config.key as keyof typeof this._itemCounts;
+      slot.setCount(this._itemCounts[countKey]);
+      this._itemSlots.push(slot);
+
+      slot.setOnUse(() => {
+        this._useItem(config.key, slot, countKey);
+      });
     });
+  }
+
+  private _useItem(key: string, slot: ItemSlot, countKey: keyof typeof this._itemCounts): void {
+    if (this._itemCounts[countKey] <= 0 || this._won || this._defeated) return;
+
+    this._itemCounts[countKey]--;
+    slot.setCount(this._itemCounts[countKey]);
+
+    // GameState 更新
+    const state: GameState = this.game.registry.get('gameState');
+    (state.items as Record<string, number>)[countKey] = this._itemCounts[countKey];
+    this.game.registry.set('gameState', state);
+
+    if (key === 'numberLight') {
+      // 選択セルの候補数字を表示
+      const selR = this._grid['_selectedRow'];
+      const selC = this._grid['_selectedCol'];
+      if (selR >= 0 && this._currentGrid[selR][selC] === 0) {
+        const candidates = getCandidates(this._currentGrid, { row: selR, col: selC });
+        this._grid.showCandidates(selR, selC, candidates);
+      }
+    } else if (key === 'truthEye') {
+      // ミスセルをハイライト
+      const mistakes = getMistakeCells(this._currentGrid, this._solution);
+      this._grid.setMistakes(mistakes);
+    } else if (key === 'guidingHand') {
+      // ランダムな空白セルに正解を自動入力
+      const emptyCells: { row: number; col: number }[] = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (this._currentGrid[r][c] === 0) {
+            emptyCells.push({ row: r, col: c });
+          }
+        }
+      }
+      if (emptyCells.length > 0) {
+        const idx = Math.floor(Math.random() * emptyCells.length);
+        const { row, col } = emptyCells[idx];
+        const correct = this._solution[row][col];
+        this._grid.setCell(row, col, correct);
+        this._currentGrid[row][col] = correct;
+        if (isComplete(this._currentGrid)) {
+          this._checkVictory();
+        }
+      }
+    }
   }
 
   // ─── ダメージ情報 ─────────────────────────────────────────────
 
-  private _drawDamageInfo(cx: number, y: number): void {
-    const w = 180, h = 30;
+  private _drawDamageInfo(cx: number, y: number, intervalSec: number, damage: number): void {
+    const w = 200, h = 30;
     const g = this.add.graphics();
     g.lineStyle(1, 0xaa4444, 0.7);
     g.strokeRoundedRect(cx - w / 2, y, w, h, 5);
-    this.add.text(cx, y + h / 2, '⚔  -- 秒ごとに  -- ダメージ', {
+    this.add.text(cx, y + h / 2, `⚔  ${intervalSec}秒ごとに  ${damage}ダメージ`, {
       fontFamily: 'Georgia, serif',
       fontSize: 13,
       color: '#cc8888',
