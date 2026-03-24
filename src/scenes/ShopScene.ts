@@ -216,13 +216,13 @@ export class ShopScene extends Phaser.Scene {
         fontSize: '13px',
         color: '#8b6914',
       });
-      currentY += 18;
+      currentY += 16;
 
       sec.items.forEach(item => {
         this._drawEquipItemRow(x, currentY, item);
-        currentY += 46;
+        currentY += 42;
       });
-      currentY += 4;
+      currentY += 2;
     });
   }
 
