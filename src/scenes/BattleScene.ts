@@ -193,13 +193,29 @@ export class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 戦闘テキスト
-    this.add.text(panelX + panelW / 2, panelY + panelH - 40, '数の謎を\n解き明かせ！', {
+    this.add.text(panelX + panelW / 2, panelY + panelH - 80, '数の謎を\n解き明かせ！', {
       fontFamily: 'Georgia, serif',
       fontSize: 12,
       color: '#ccaaaa',
       align: 'center',
       lineSpacing: 4,
     }).setOrigin(0.5);
+
+    // ダメージ情報枠
+    const dmgY = panelY + panelH - 52;
+    const dmgG = this.add.graphics();
+    dmgG.lineStyle(1, 0xaa4444, 0.6);
+    dmgG.strokeRoundedRect(panelX + 8, dmgY, panelW - 16, 44, 5);
+    this.add.text(panelX + panelW / 2, dmgY + 8, '⚔ ダメージ', {
+      fontFamily: 'Georgia, serif',
+      fontSize: 10,
+      color: '#cc7777',
+    }).setOrigin(0.5, 0);
+    this.add.text(panelX + panelW / 2, dmgY + 26, '-- 秒 / -- ダメージ', {
+      fontFamily: 'Arial',
+      fontSize: 10,
+      color: '#888899',
+    }).setOrigin(0.5, 0);
   }
 
   // ─── HPバー ──────────────────────────────────────────────────
