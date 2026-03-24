@@ -96,16 +96,16 @@ export class WorldMapScene extends Phaser.Scene {
     const { WIDTH, HEIGHT } = GAME_CONFIG;
     const g = this.add.graphics();
 
-    // 羊皮紙ベース色
-    g.fillStyle(0xc8a86e, 1);
+    // 羊皮紙ベース色（明るめに）
+    g.fillStyle(0xe2c88a, 1);
     g.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // ムラ感（複数の半透明レイヤー）
-    g.fillStyle(0xd4b87a, 0.4);
+    // ムラ感
+    g.fillStyle(0xecd898, 0.4);
     g.fillRect(0, 0, WIDTH * 0.6, HEIGHT * 0.6);
-    g.fillStyle(0xb89050, 0.3);
+    g.fillStyle(0xd0a858, 0.25);
     g.fillRect(WIDTH * 0.3, HEIGHT * 0.2, WIDTH * 0.7, HEIGHT * 0.8);
-    g.fillStyle(0xe8c888, 0.25);
+    g.fillStyle(0xf0e0a0, 0.2);
     g.fillRect(WIDTH * 0.1, HEIGHT * 0.4, WIDTH * 0.5, HEIGHT * 0.6);
 
     // 縦方向のにじみ（紙の繊維感）
@@ -158,12 +158,12 @@ export class WorldMapScene extends Phaser.Scene {
     );
     g.fillPoints(this._buildPoints(shadow), true);
 
-    // 大陸ベース（羊皮紙に馴染む緑）
-    g.fillStyle(0x7aaa5a, 1);
+    // 大陸ベース（鮮やかな緑）
+    g.fillStyle(0x6abf4a, 1);
     g.fillPoints(this._buildContinentPoints(), true);
 
     // 大陸の内側グラデーション感（明るい中心）
-    g.fillStyle(0x90c070, 0.4);
+    g.fillStyle(0x90dd60, 0.45);
     const inner = CONTINENT_POINTS.map((v, i) => {
       const center = i % 2 === 0 ? 0.5 : 0.5;
       return i % 2 === 0
@@ -203,57 +203,57 @@ export class WorldMapScene extends Phaser.Scene {
     const g = this.add.graphics();
 
     // 草原（Realm1）- 明るい黄緑
-    g.fillStyle(0x98cc6a, 0.6);
+    g.fillStyle(0xaadd66, 0.8);
     g.fillEllipse(...this._ea(0.20, 0.72, 0.16, 0.14));
     this._drawTreeCluster(g, 0.17, 0.73, 6);
     this._drawTreeCluster(g, 0.24, 0.68, 5);
 
     // 森（Realm2）- 深い緑、不整形
-    g.fillStyle(0x2e6e2e, 0.75);
+    g.fillStyle(0x2a8a2a, 0.88);
     g.fillEllipse(...this._ea(0.30, 0.54, 0.15, 0.12));
-    g.fillStyle(0x3a8a3a, 0.5);
+    g.fillStyle(0x44bb44, 0.65);
     g.fillEllipse(...this._ea(0.36, 0.50, 0.10, 0.10));
     g.fillEllipse(...this._ea(0.26, 0.58, 0.09, 0.08));
     this._drawTreeCluster(g, 0.30, 0.52, 10);
     this._drawTreeCluster(g, 0.36, 0.48, 7);
 
     // 砂漠（Realm3）- 黄土色
-    g.fillStyle(0xd4a84a, 0.8);
+    g.fillStyle(0xeecc44, 0.92);
     g.fillEllipse(...this._ea(0.52, 0.66, 0.18, 0.15));
-    g.fillStyle(0xc09030, 0.4);
+    g.fillStyle(0xddaa20, 0.5);
     g.fillEllipse(...this._ea(0.55, 0.70, 0.10, 0.08));
     this._drawDunes(g, 0.50, 0.67);
     this._drawDunes(g, 0.56, 0.63);
 
     // 雪山（Realm4）- 白・水色
-    g.fillStyle(0xe8f4ff, 0.85);
+    g.fillStyle(0xddf4ff, 0.95);
     g.fillEllipse(...this._ea(0.70, 0.50, 0.17, 0.15));
-    this._drawMountains(g, 0.67, 0.52, 0xffffff, 0xaaccee);
-    this._drawMountains(g, 0.74, 0.47, 0xffffff, 0xddeeff);
+    this._drawMountains(g, 0.67, 0.52, 0xffffff, 0xbbddff);
+    this._drawMountains(g, 0.74, 0.47, 0xffffff, 0xeef8ff);
 
     // 海の王国（Realm5）- 港・半島
-    g.fillStyle(0x4a8aaa, 0.45);
+    g.fillStyle(0x33aadd, 0.65);
     g.fillEllipse(...this._ea(0.84, 0.60, 0.13, 0.17));
-    g.fillStyle(0x6aaa6a, 0.8);
+    g.fillStyle(0x44cc66, 0.9);
     g.fillEllipse(...this._ea(0.83, 0.62, 0.08, 0.09));
 
     // 火山（Realm6）- 黒赤
-    g.fillStyle(0x4a1a0a, 0.82);
+    g.fillStyle(0x771a0a, 0.9);
     g.fillEllipse(...this._ea(0.76, 0.32, 0.14, 0.13));
     this._drawVolcano(g, 0.76, 0.32);
 
     // 闇の森（Realm7）- 紫黒
-    g.fillStyle(0x1a0a28, 0.85);
+    g.fillStyle(0x2a0a44, 0.9);
     g.fillEllipse(...this._ea(0.55, 0.22, 0.15, 0.13));
-    g.fillStyle(0x2a1038, 0.5);
+    g.fillStyle(0x4a1a66, 0.6);
     g.fillEllipse(...this._ea(0.50, 0.19, 0.08, 0.07));
     this._drawDeadTrees(g, 0.53, 0.22);
     this._drawDeadTrees(g, 0.58, 0.19);
 
     // 魔王城エリア（Realm9）- 焦土・山岳
-    g.fillStyle(0x281010, 0.88);
+    g.fillStyle(0x440808, 0.92);
     g.fillEllipse(...this._ea(0.16, 0.38, 0.13, 0.15));
-    this._drawMountains(g, 0.14, 0.40, 0x441010, 0x220808);
+    this._drawMountains(g, 0.14, 0.40, 0x771010, 0x440808);
 
     // 天空島（Realm8）
     this._drawSkyIsland(g);
@@ -349,7 +349,7 @@ export class WorldMapScene extends Phaser.Scene {
     const W = this._mapW;
 
     // 空の帯（上部）
-    g.fillStyle(0xaaccff, 0.22);
+    g.fillStyle(0x88ccff, 0.45);
     g.fillRect(this._mapX, this._mapY, W, this._mapH * 0.18);
 
     // 背景の雲（ふわふわ）
@@ -358,26 +358,26 @@ export class WorldMapScene extends Phaser.Scene {
       [x - 40, y - 6, 0.3], [x + 130, y + 14, 0.28],
       [x - 160, y + 18, 0.32],
     ].forEach(([cx, cy, a]) => {
-      g.fillStyle(0xeef4ff, a as number);
+      g.fillStyle(0xffffff, (a as number) * 1.4);
       g.fillEllipse(cx, cy, 90, 32);
       g.fillEllipse(cx + 24, cy - 12, 64, 26);
       g.fillEllipse(cx - 22, cy - 8, 52, 22);
     });
 
     // 浮島本体
-    g.fillStyle(0x5a4a2a, 1);           // 岩の側面
+    g.fillStyle(0x7a6a3a, 1);           // 岩の側面
     g.fillEllipse(x, y + 30, 100, 24);
-    g.fillStyle(0x7a6a3a, 0.8);         // 岩の底グラデーション
+    g.fillStyle(0x9a8a4a, 0.85);         // 岩の底グラデーション
     g.fillEllipse(x, y + 34, 90, 16);
-    g.fillStyle(0x88cc55, 1);           // 草の層
+    g.fillStyle(0x88ee44, 1);           // 草の層
     g.fillEllipse(x, y + 14, 96, 28);
-    g.fillStyle(0xaaee77, 0.6);         // 草の明るい部分
+    g.fillStyle(0xccff66, 0.7);         // 草の明るい部分
     g.fillEllipse(x - 10, y + 10, 60, 16);
 
     // 島の上の小さな塔
     g.fillStyle(0xddd0a8, 1);
     g.fillRect(x - 8, y - 14, 16, 24);
-    g.fillStyle(0x88aaff, 1);
+    g.fillStyle(0x66aaff, 1);
     g.fillTriangle(x - 12, y - 14, x + 12, y - 14, x, y - 30);
     g.fillStyle(0xffffcc, 0.9);
     g.fillRect(x - 4, y - 8, 8, 8);
@@ -516,10 +516,10 @@ export class WorldMapScene extends Phaser.Scene {
     // ラベル（手書き風フォント）
     const label = this.add.text(0, 26, realm.name, {
       fontFamily: 'Georgia, serif',
-      fontSize: 11,
-      color: isLocked ? '#7a6a50' : '#3a2a10',
-      stroke: '#d4b870',
-      strokeThickness: 3,
+      fontSize: 12,
+      color: isLocked ? '#8a7a60' : '#1a0a00',
+      stroke: '#f0d890',
+      strokeThickness: 4,
       fontStyle: isLocked ? 'italic' : 'bold',
     }).setOrigin(0.5);
     container.add(label);
