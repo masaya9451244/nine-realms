@@ -430,12 +430,20 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private _drawHouse(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
-    g.fillStyle(0x6b4c2a, 1);
-    g.fillRect(x - 45, y - 50, 90, 55);
-    g.fillStyle(0x8b3a1a, 1);
-    g.fillTriangle(x - 55, y - 50, x + 55, y - 50, x, y - 100);
-    g.fillStyle(0x4a7c3f, 0.6);
+    g.lineStyle(0, 0, 0); // ラインを無効化
+    // 壁
+    g.fillStyle(0x7a5c35, 1);
+    g.fillRect(x - 40, y - 55, 80, 60);
+    // 屋根（幅広く、なだらかに）
+    g.fillStyle(0x7a2510, 1);
+    g.fillTriangle(x - 52, y - 55, x + 52, y - 55, x, y - 105);
+    // ドア
+    g.fillStyle(0x3b2208, 1);
     g.fillRect(x - 12, y - 30, 24, 35);
+    // 窓
+    g.fillStyle(0xf7d080, 0.6);
+    g.fillRect(x - 35, y - 48, 18, 16);
+    g.fillRect(x + 17, y - 48, 18, 16);
   }
 
   private _drawPerson(
