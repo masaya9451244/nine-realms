@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, FONTS, GAME_CONFIG } from '../config';
+import { FONTS, GAME_CONFIG } from '../config';
 import { REALMS } from '../data/realms';
 
 export class WorldMapScene extends Phaser.Scene {
@@ -186,7 +186,7 @@ export class WorldMapScene extends Phaser.Scene {
   }
 
   private _createShopButton(): void {
-    const { WIDTH, HEIGHT } = GAME_CONFIG;
+    const { HEIGHT } = GAME_CONFIG;
     const x = 80;
     const y = HEIGHT - 40;
 
