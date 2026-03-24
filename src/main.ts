@@ -11,7 +11,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: GAME_CONFIG.WIDTH,
   height: GAME_CONFIG.HEIGHT,
   backgroundColor: COLORS.BG_DARK,
-  scene: [BootScene, TitleScene, OpeningScene, WorldMapScene, BattleScene],
+  scene: [BattleScene, BootScene, TitleScene, OpeningScene, WorldMapScene],
   parent: 'app',
 };
 
