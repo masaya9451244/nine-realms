@@ -16,18 +16,18 @@ const GRID = CELL * 9;  // グリッド全体サイズ
 // カラー定数
 const C = {
   BG:         0x1a1a2a,
-  CELL_NORMAL:0xf4f0e4,
-  CELL_FIXED: 0xe0d8c0,
-  CELL_SELECT:0xffe080,
-  CELL_HL:    0xf0e8b0,  // 同じ行/列/ボックスのハイライト
-  CELL_SAME:  0xffd060,  // 同じ数字のハイライト
-  CELL_ERROR: 0xffcccc,
-  LINE_THIN:  0xaaaaaa,
-  LINE_BOLD:  0x333333,
-  TEXT_FIXED: 0x1a1a3a,
-  TEXT_INPUT: 0x1a5a9a,
-  TEXT_ERROR: 0xcc2222,
-  TEXT_CAND:  0x7a7a9a,
+  CELL_NORMAL:0xfafaf8,   // ほぼ白
+  CELL_FIXED: 0xe8e4d8,   // やや黄みがかった白
+  CELL_SELECT:0x4db8ff,   // 鮮やかな水色
+  CELL_HL:    0xc8e4ff,   // 薄い青（行/列/ボックス）
+  CELL_SAME:  0x90ccff,   // 中程度の青（同じ数字）
+  CELL_ERROR: 0xff8888,   // はっきりした赤
+  LINE_THIN:  0x999999,
+  LINE_BOLD:  0x222222,
+  TEXT_FIXED: 0x111122,   // ほぼ黒
+  TEXT_INPUT: 0x1155cc,   // 青
+  TEXT_ERROR: 0xdd0000,
+  TEXT_CAND:  0x6688aa,
 };
 
 export class SudokuGrid {
@@ -113,8 +113,8 @@ export class SudokuGrid {
         const cy = this._y + r * CELL + CELL / 2;
         return this._scene.add.text(cx, cy, '', {
           fontFamily: 'Georgia, serif',
-          fontSize: 28,
-          color: '#1a1a3a',
+          fontSize: 34,
+          color: '#111122',
           fontStyle: 'bold',
         }).setOrigin(0.5).setDepth(2);
       })
@@ -215,7 +215,7 @@ export class SudokuGrid {
     }
 
     // 太いボックス線
-    g.lineStyle(3, C.LINE_BOLD, 1);
+    g.lineStyle(4, C.LINE_BOLD, 1);
     for (let i = 0; i <= 9; i += 3) {
       g.lineBetween(this._x + i * CELL, this._y, this._x + i * CELL, this._y + GRID);
       g.lineBetween(this._x, this._y + i * CELL, this._x + GRID, this._y + i * CELL);
@@ -231,11 +231,11 @@ export class SudokuGrid {
         if (cell.value !== 0) {
           textObj.setText(String(cell.value));
           if (cell.fixed) {
-            textObj.setColor('#1a1a3a').setFontStyle('bold').setFontSize(28);
+            textObj.setColor('#111122').setFontStyle('bold').setFontSize(34);
           } else if (cell.mistake) {
-            textObj.setColor('#cc2222').setFontStyle('bold').setFontSize(28);
+            textObj.setColor('#dd0000').setFontStyle('bold').setFontSize(34);
           } else {
-            textObj.setColor('#1a5a9a').setFontStyle('bold').setFontSize(28);
+            textObj.setColor('#1155cc').setFontStyle('bold').setFontSize(34);
           }
           // 候補数字を非表示
           this._candObjects[r][c].forEach(t => t.setVisible(false));
