@@ -66,15 +66,8 @@ export class BattleScene extends Phaser.Scene {
     // ── HPバー（上部左）
     this._drawHpBar();
 
-    // ── タイマー（上部中央）
-    this.add.text(WIDTH / 2 + 60, 22, '05:00', {
-      fontFamily: 'Georgia, serif',
-      fontSize: 22,
-      color: '#f4d03f',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }).setOrigin(0.5);
+    // ── ダメージ情報（上部中央）
+    this._drawDamageInfo(WIDTH / 2 + 60, 10);
 
     // ── アイテムスロット（右パネル）
     this._drawItemSlots();
@@ -193,29 +186,13 @@ export class BattleScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // 戦闘テキスト
-    this.add.text(panelX + panelW / 2, panelY + panelH - 80, '数の謎を\n解き明かせ！', {
+    this.add.text(panelX + panelW / 2, panelY + panelH - 40, '数の謎を\n解き明かせ！', {
       fontFamily: 'Georgia, serif',
       fontSize: 12,
       color: '#ccaaaa',
       align: 'center',
       lineSpacing: 4,
     }).setOrigin(0.5);
-
-    // ダメージ情報枠
-    const dmgY = panelY + panelH - 52;
-    const dmgG = this.add.graphics();
-    dmgG.lineStyle(1, 0xaa4444, 0.6);
-    dmgG.strokeRoundedRect(panelX + 8, dmgY, panelW - 16, 44, 5);
-    this.add.text(panelX + panelW / 2, dmgY + 8, '⚔ ダメージ', {
-      fontFamily: 'Georgia, serif',
-      fontSize: 10,
-      color: '#cc7777',
-    }).setOrigin(0.5, 0);
-    this.add.text(panelX + panelW / 2, dmgY + 26, '-- 秒 / -- ダメージ', {
-      fontFamily: 'Arial',
-      fontSize: 10,
-      color: '#888899',
-    }).setOrigin(0.5, 0);
   }
 
   // ─── HPバー ──────────────────────────────────────────────────
@@ -368,5 +345,21 @@ export class BattleScene extends Phaser.Scene {
       );
       slot.setCount(i === 0 ? 3 : i === 1 ? 1 : 0); // デモ用
     });
+  }
+
+  // ─── ダメージ情報 ─────────────────────────────────────────────
+
+  private _drawDamageInfo(cx: number, y: number): void {
+    const w = 180, h = 30;
+    const g = this.add.graphics();
+    g.lineStyle(1, 0xaa4444, 0.7);
+    g.strokeRoundedRect(cx - w / 2, y, w, h, 5);
+    this.add.text(cx, y + h / 2, '⚔  -- 秒ごとに  -- ダメージ', {
+      fontFamily: 'Georgia, serif',
+      fontSize: 13,
+      color: '#cc8888',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5);
   }
 }
