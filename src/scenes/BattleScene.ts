@@ -235,7 +235,7 @@ export class BattleScene extends Phaser.Scene {
 
     const state: GameState = this.game.registry.get('gameState');
     state.gold += this._goldReward;
-    state.hp = this._currentHp;
+    state.hp = state.maxHp; // 勝利後はHP全回復
 
     if (this._isBoss) {
       // ボス戦勝利処理
