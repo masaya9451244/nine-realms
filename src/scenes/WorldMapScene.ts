@@ -111,6 +111,10 @@ export class WorldMapScene extends Phaser.Scene {
     g.fillStyle(0x3d7a3d, 1);
     g.fillPoints(this._buildContinentPoints(), true);
 
+    // 9つに引き裂かれた痕跡（裏設定）
+    // 魔王ナインが世界を分断した断層線。薄く・細く・知る人ぞ知る
+    this._drawRiftLines(g);
+
     // 海岸線
     g.lineStyle(2, 0x8ab88a, 0.7);
     g.strokePoints(this._buildContinentPoints(), true);
@@ -182,6 +186,54 @@ export class WorldMapScene extends Phaser.Scene {
 
     // 天空の王国（Realm8）- 空に浮かぶ島（大陸の上方、別世界感）
     this._drawSkyIsland(g);
+  }
+
+  private _drawRiftLines(g: Phaser.GameObjects.Graphics): void {
+    // 魔王ナインが世界を9つのRealmに引き裂いた痕跡。
+    // 各Realmの境界を走る断層線。薄く描くことで「気づく人だけ気づく」裏設定になる。
+    // 亀裂は不規則にジグザグし、紫がかった暗い輝きを帯びている。
+
+    const rifts: Array<[number, number, number, number][]> = [
+      // Realm1 と Realm2 の境界（草原〜森）
+      [[0.18, 0.58], [0.22, 0.64], [0.20, 0.70], [0.24, 0.76]],
+      // Realm2 と Realm3 の境界（森〜砂漠）
+      [[0.38, 0.44], [0.42, 0.52], [0.40, 0.60], [0.44, 0.68]],
+      // Realm3 と Realm4 の境界（砂漠〜雪山）
+      [[0.60, 0.46], [0.62, 0.54], [0.64, 0.62], [0.62, 0.70]],
+      // Realm4 と Realm5 の境界（雪山〜海の王国）
+      [[0.74, 0.44], [0.76, 0.52], [0.78, 0.58]],
+      // Realm5 と Realm6 の境界（海〜火山）
+      [[0.80, 0.40], [0.78, 0.46], [0.80, 0.52]],
+      // Realm6 と Realm7 の境界（火山〜闇の森）
+      [[0.62, 0.22], [0.66, 0.28], [0.68, 0.34]],
+      // Realm7 と Realm8 の境界（闇の森〜天空）
+      [[0.42, 0.18], [0.46, 0.22], [0.44, 0.28]],
+      // Realm8 と Realm9 の境界（天空〜魔王城）
+      [[0.18, 0.26], [0.20, 0.32], [0.18, 0.38]],
+    ];
+
+    rifts.forEach(points => {
+      // 亀裂の外縁（暗い紫）
+      g.lineStyle(3, 0x220033, 0.22);
+      g.beginPath();
+      const first = this._toMapXY(points[0][0], points[0][1]);
+      g.moveTo(first.x, first.y);
+      points.slice(1).forEach(([rx, ry]) => {
+        const { x, y } = this._toMapXY(rx, ry);
+        g.lineTo(x, y);
+      });
+      g.strokePath();
+
+      // 亀裂の中心（薄い紫の光）
+      g.lineStyle(1, 0x9933cc, 0.18);
+      g.beginPath();
+      g.moveTo(first.x, first.y);
+      points.slice(1).forEach(([rx, ry]) => {
+        const { x, y } = this._toMapXY(rx, ry);
+        g.lineTo(x, y);
+      });
+      g.strokePath();
+    });
   }
 
   private _drawSkyIsland(g: Phaser.GameObjects.Graphics): void {
