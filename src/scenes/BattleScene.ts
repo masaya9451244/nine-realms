@@ -104,9 +104,8 @@ export class BattleScene extends Phaser.Scene {
     this._grid.loadGrid(puzzle.grid, this._solution);
     this._grid.setOnCellSelect((r, c) => {
       if (this._won || this._defeated) return;
-      if (this._selectedNum > 0) {
+      if (this._selectedNum > 0 && !this._grid.isFixed(r, c)) {
         const prevValue = this._currentGrid[r][c];
-        // 固定マスへの入力は SudokuGrid 側が防ぐが念のため
         this._grid.setCell(r, c, this._selectedNum);
         this._currentGrid[r][c] = this._selectedNum;
 

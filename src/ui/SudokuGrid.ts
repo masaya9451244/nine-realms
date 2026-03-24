@@ -56,6 +56,10 @@ export class SudokuGrid {
 
   get gridSize(): number { return GRID; }
 
+  isFixed(row: number, col: number): boolean {
+    return this._cells[row][col].fixed;
+  }
+
   setOnCellSelect(cb: (row: number, col: number) => void): void {
     this._onCellSelect = cb;
   }
