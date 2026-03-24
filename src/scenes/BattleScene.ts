@@ -535,7 +535,7 @@ export class BattleScene extends Phaser.Scene {
     delContainer.on('pointerdown', () => {
       const sel = this._grid['_selectedRow'];
       const selC = this._grid['_selectedCol'];
-      if (sel >= 0) {
+      if (sel >= 0 && !this._grid.isFixed(sel, selC)) {
         this._grid.setCell(sel, selC, 0);
         this._currentGrid[sel][selC] = 0;
       }

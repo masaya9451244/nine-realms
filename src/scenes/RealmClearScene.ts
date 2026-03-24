@@ -15,12 +15,14 @@ const DEFAULT_DATA: RealmClearData = {
 
 export class RealmClearScene extends Phaser.Scene {
   private _data!: RealmClearData;
+  private _transitioning = false;
 
   constructor() {
     super({ key: 'RealmClearScene' });
   }
 
   init(data?: Partial<RealmClearData>): void {
+    this._transitioning = false;
     if (data && data.realmId !== undefined && data.realmName && data.goldEarned !== undefined) {
       this._data = data as RealmClearData;
     } else {
@@ -222,7 +224,8 @@ export class RealmClearScene extends Phaser.Scene {
   }
 
   private _goToWorldMap(): void {
-    if (!this.scene.isActive('RealmClearScene')) return;
+    if (this._transitioning) return;
+    this._transitioning = true;
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       if (this._data.realmId === 9) {
