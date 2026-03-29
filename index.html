@@ -7,10 +7,31 @@
     <title>Nine Realms</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; }
+      body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+      #portrait-warning {
+        display: none;
+        position: fixed; inset: 0; z-index: 999;
+        background: #1a1a2e;
+        color: #c9a227;
+        font-family: Georgia, serif;
+        font-size: 18px;
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 12px;
+      }
+      @media (max-width: 768px) and (orientation: portrait) {
+        #portrait-warning { display: flex; }
+        #app { display: none; }
+      }
     </style>
   </head>
   <body>
+    <div id="portrait-warning">
+      <div style="font-size:48px">↻</div>
+      <div>横向きにしてプレイしてください</div>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

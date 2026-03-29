@@ -15,6 +15,10 @@ const config: Phaser.Types.Core.GameConfig = {
   width: GAME_CONFIG.WIDTH,
   height: GAME_CONFIG.HEIGHT,
   backgroundColor: COLORS.BG_DARK,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   scene: [
     BootScene,
     TitleScene,

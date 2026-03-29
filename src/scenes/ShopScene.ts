@@ -160,6 +160,26 @@ export class ShopScene extends Phaser.Scene {
       this._tabContainers[tab].y -= diff;
     });
 
+    // タッチドラッグスクロール
+    let dragStartY = 0;
+    this.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
+      dragStartY = ptr.y;
+    });
+    this.input.on('pointermove', (ptr: Phaser.Input.Pointer) => {
+      if (!ptr.isDown) return;
+      const deltaY = -(ptr.y - dragStartY) * 1.2;
+      dragStartY = ptr.y;
+      const tab = this._activeTab;
+      const newOffset = Phaser.Math.Clamp(
+        this._tabScrollOffsets[tab] + deltaY,
+        0,
+        this._tabMaxScrolls[tab],
+      );
+      const diff = newOffset - this._tabScrollOffsets[tab];
+      this._tabScrollOffsets[tab] = newOffset;
+      this._tabContainers[tab].y -= diff;
+    });
+
     // 所持ゴールド
     this._goldText = this.add.text(panelX + 24, panelY + panelH - 46, `G: ${state.gold}`, {
       fontFamily: 'Georgia, serif',
